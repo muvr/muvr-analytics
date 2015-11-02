@@ -24,12 +24,17 @@ rm -f $EVAL
 python mlp/start_training.py -h
 printf "\n\nSTART TRAINING & EVALUATION\n\n"
 
-python mlp/start_training.py -d $DATASET -o $OUTPUT -e $EVAL -v $VISUAL
+if [ -z "$3" ]
+then
+    python mlp/start_training.py -d $DATASET -o $OUTPUT -e $EVAL -v $VISUAL
+else
+    python mlp/start_training.py -d $DATASET -o $OUTPUT -e $EVAL -v $VISUAL -t $3
+fi
 EXIT_CODE=$?
 if [[ $EXIT_CODE != 0 ]]
 then
     exit $EXIT_CODE
 else
-    open output/visualisation.png
-    open output/evaluation.csv
+    open $OUTPUT/visualisation.png
+    open $OUTPUT/evaluation.csv
 fi
