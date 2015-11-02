@@ -32,7 +32,7 @@ def convert(neon_model_path, output_filename):
     f = open(output_filename, "wb")
 
     #  You can use 'd' for double and < or > to force endinness
-    bin_data = struct.pack('d' * len(weights), *weights)
+    bin_data = struct.pack('f' * len(weights), *weights)
 
     f.write(bin_data)
     f.close()
