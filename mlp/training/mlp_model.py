@@ -11,7 +11,9 @@ from neon.transforms import Misclassification
 import os
 import logging
 from training import utils
-import argparse as ap
+
+class NeonCallbackParameters(object):
+    pass
 
 class MLPMeasurementModel(object):
     """Wrapper around a neon MLP model that controls training parameters and configuration of the model."""
@@ -100,31 +102,20 @@ class MLPMeasurementModel(object):
         if not model:
             model = self.generate_default_model(dataset.num_labels)
 
-        #
-        # TODO: Update to use neon 1.1.0!
-        #
-        # args = {"output_file": os.path.join(self.root_path, self.Callback_Store_Filename),
-        #         "evaluation_freq": 1,
-        #         "progress_bar": True,
-        #         "epochs": 1,
-        #         "save_path": os.path.join(self.root_path, self.Intermediate_Model_Filename),
-        #         "serialize": 1,
-        #         "history": 1,
-        #         "model_file": None}
-        # callbacks = Callbacks(model, dataset.train(), ap.Namespace(**args), eval_set=dataset.test())
+        args = NeonCallbackParameters()
+        args.output_file = os.path.join(self.root_path, self.Callback_Store_Filename)
+        args.evaluation_freq = 1
+        args.progress_bar = True
+        args.epochs = self.max_epochs
+        args.save_path = os.path.join(self.root_path, self.Intermediate_Model_Filename)
+        args.serialize = 1
+        args.history = 100
+        args.model_file = None
 
-        callbacks = Callbacks(model, dataset.train(),
-                              output_file=os.path.join(self.root_path, self.Callback_Store_Filename),
-                              progress_bar=True,
-                              valid_set=dataset.test(),
-                              valid_freq=1)
+        callbacks = Callbacks(model, dataset.train(), args, eval_set=dataset.test())
 
         # add a callback that saves the best model state
         callbacks.add_save_best_state_callback(self.model_path)
-        callbacks.add_serialize_callback(
-            serialize_schedule=1,
-            save_path=os.path.join(self.root_path, self.Intermediate_Model_Filename),
-            history=100)
 
         # Uncomment line below to run on GPU using cudanet backend
         # backend = gen_backend(rng_seed=0, gpu='cudanet')

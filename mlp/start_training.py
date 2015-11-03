@@ -18,13 +18,13 @@ def visualise_dataset(dataset, output_image):
     number_of_examples_to_plot = 3
     plot_ids = np.random.random_integers(0, dataset.num_train_examples - 1, number_of_examples_to_plot)
 
-    print "Ids of plotted examples:",plot_ids
+    print "Ids of plotted examples:", plot_ids
 
     # Retrieve a human readable label given the idx of an example
-    def label_of_example(i):
-        return dataset.human_label_for(dataset.y_train[i])
+    def label_of_example(index):
+        return dataset.human_label_for(dataset.y_train[index])
 
-    figure(figsize=(20,10))
+    figure(figsize=(20, 10))
     ax1 = subplot(311)
     setp(ax1.get_xticklabels(), visible=False)
     ax1.set_ylabel('X - Acceleration')
@@ -39,9 +39,9 @@ def visualise_dataset(dataset, output_image):
     for i in plot_ids:
         c = np.random.random((3,))
 
-        ax1.plot(range(0, dataset.num_features / 3), dataset.X_train[i,0:400], '-o', c=c)
-        ax2.plot(range(0, dataset.num_features / 3), dataset.X_train[i,400:800], '-o', c=c)
-        ax3.plot(range(0, dataset.num_features / 3), dataset.X_train[i,800:1200], '-o', c=c)
+        ax1.plot(range(0, dataset.num_features / 3), dataset.X_train[i, 0:400], '-o', c=c)
+        ax2.plot(range(0, dataset.num_features / 3), dataset.X_train[i, 400:800], '-o', c=c)
+        ax3.plot(range(0, dataset.num_features / 3), dataset.X_train[i, 800:1200], '-o', c=c)
 
     legend(map(label_of_example, plot_ids))
     suptitle('Feature values for the first three training examples', fontsize=16)
@@ -74,9 +74,9 @@ def predict(model, dataset):
         bsz = min(dataset.ndata - nprocessed, model.be.bsz)
         nprocessed += bsz
         if predictions is None:
-            predictions = pred[:,:bsz]
+            predictions = pred[:, :bsz]
         else:
-            predictions = np.hstack((predictions, pred[:,:bsz]))
+            predictions = np.hstack((predictions, pred[:, :bsz]))
     return predictions
 
 
@@ -85,19 +85,19 @@ def show_evaluation(model, dataset):
     # confusion_matrix(y_true, y_pred)
     predicted = predict(model, dataset.test())
     y_true = dataset.y_test
-    y_pred = np.argmax(predicted, axis = 0)
+    y_pred = np.argmax(predicted, axis=0)
 
-    confusion_mat = confusion_matrix(y_true, y_pred, range(0,dataset.num_labels))
+    confusion_mat = confusion_matrix(y_true, y_pred, range(0, dataset.num_labels))
 
     # Fiddle around with cm to get it into table shape
-    confusion_mat = np.vstack((np.zeros((1,dataset.num_labels), dtype=int), confusion_mat))
+    confusion_mat = np.vstack((np.zeros((1, dataset.num_labels), dtype=int), confusion_mat))
     confusion_mat = np.hstack((np.zeros((dataset.num_labels + 1, 1), dtype=int), confusion_mat))
 
     table = confusion_mat.tolist()
 
-    human_labels = map(dataset.human_label_for, range(0,dataset.num_labels))
+    human_labels = map(dataset.human_label_for, range(0, dataset.num_labels))
 
-    for i,s in enumerate(human_labels):
+    for i, s in enumerate(human_labels):
         table[0][i+1] = s
         table[i+1][0] = s
     table[0][0] = "actual \ predicted"
@@ -107,10 +107,10 @@ def show_evaluation(model, dataset):
 
 def write_to_csv(filename, data):
     """Write csv data to filename"""
-    file = open(filename, 'wb')
-    writer = csv.writer(file)
+    csvfile = open(filename, 'wb')
+    writer = csv.writer(csvfile)
     writer.writerows(data)
-    file.close()
+    csvfile.close()
 
 
 def main(dataset_directory, working_directory, evaluation_file, visualise_image, model_name):
@@ -134,6 +134,7 @@ def main(dataset_directory, working_directory, evaluation_file, visualise_image,
 
     # 5/ Print the evaluation table to csv file
     write_to_csv(evaluation_file, table)
+    
 if __name__ == '__main__':
     """List arguments for this program"""
     parser = argparse.ArgumentParser(description='Train and evaluate the exercise dataset.')
