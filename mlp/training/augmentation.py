@@ -24,7 +24,7 @@ class SignalAugmenter(object):
                 augmented.append(single_augmented)
                 augmented_labels.append(single_labels)
             else:
-                print("Dropped an example because it was to short. Length: %d" % np.shape(features)[1] )
+                print("Dropped an example because it was to short. Length: %d" % np.shape(features)[1])
 
         return ExampleColl(np.vstack(augmented), np.hstack(augmented_labels))
 
@@ -45,13 +45,14 @@ class SignalAugmenter(object):
             end = start + target_length
             return example[np.newaxis, :, start:end], np.array(label)
         else:
-            num_augmented = math.floor((max_idx - target_length - min_idx) / window_step_size) + 1
+            augmentation_range = range(min_idx, max_idx - target_length, window_step_size)
+            num_augmented = len(augmentation_range)
             augmented = np.empty((num_augmented, dimensions, target_length))
             labels = np.empty(num_augmented)
             labels.fill(label)
             # Use a sliding window to move it over the input example. this will create new examples that can be used for
             # training a model
-            for i in range(min_idx, max_idx - target_length, window_step_size):
+            for i in augmentation_range:
                 idx = (i - min_idx) / window_step_size
                 augmented[idx, :, :] = example[:, i:(i + target_length)]
             return augmented, labels
