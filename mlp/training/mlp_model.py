@@ -1,107 +1,58 @@
 from neon.backends import gen_backend
-from neon.layers import Affine, Dropout, GeneralizedCost, Linear
-from neon.transforms import Rectlin, Logistic
-from neon.transforms.cost import CrossEntropyMulti
-from neon.initializers import Uniform, Constant
+from neon.layers import Linear
 import time
-from neon.optimizers import GradientDescentMomentum
-from neon.models import Model
 from neon.callbacks.callbacks import Callbacks
 from neon.transforms import Misclassification
 import os
 import logging
 from training import utils
-
-class NeonCallbackParameters(object):
-    pass
+import yaml
+from neon.util.yaml_parse import create_objects
 
 class MLPMeasurementModel(object):
     """Wrapper around a neon MLP model that controls training parameters and configuration of the model."""
 
     random_seed = 666  # Take your lucky number
+    
+    Default_Batch_Size = 30
+    Default_Max_Epochs = 10
 
     # Storage settings for the different output files
     Model_Filename = 'workout-mlp.pkl'
     Callback_Store_Filename = 'workout-mlp.h5'
     Intermediate_Model_Filename = 'workout-mlp-ep'
 
-    def __init__(self, root_path, lrate=0.01, batch_size=30, max_epochs=10):
+    def __init__(self, root_path, model_yaml_path):
         """Initialize paths and loggers of the model."""
         # Storage director of the model and its snapshots
         self.root_path = root_path
         self.model_path = os.path.join(self.root_path, self.Model_Filename)
         utils.remove_if_exists(self.model_path)
-        
-        # Training settings
-        self.lrate = lrate
+
+        self.model_yaml_path = model_yaml_path
+        batch_size, epochs = self._load_backend_parameters_from(model_yaml_path)
         self.batch_size = batch_size
-        self.max_epochs = max_epochs
+        self.max_epochs = epochs
 
         # Set logging output...
         for name in ["neon.util.persist"]:
             dslogger = logging.getLogger(name)
             dslogger.setLevel(40)
-
-        print 'Epochs: %d Batch-Size: %d' % (self.max_epochs, self.batch_size)
-
-    def generate_default_model(self, num_labels):
-        """Generate layers and a MLP model using the given settings."""
-        init_norm = Uniform(low=-0.1, high=0.1)
-        bias_init = Constant(val=1.0)
-
-        layers = []
-        layers.append(Affine(
-            nout=250,
-            init=init_norm,
-            bias=bias_init,
-            activation=Rectlin()))
-
-        layers.append(Dropout(
-            name="do_2",
-            keep=0.9))
-
-        layers.append(Affine(
-            nout=100,
-            init=init_norm,
-            bias=bias_init,
-            activation=Rectlin()))
-
-        layers.append(Dropout(
-            name="do_3",
-            keep=0.9))
-
-        layers.append(Affine(
-            nout=num_labels,
-            init=init_norm,
-            bias=bias_init,
-            activation=Logistic()))
-
-        model = Model(layers=layers)
-        return model
-
-    def train(self, dataset, model=None):
-        """Trains the passed model on the given dataset. If no model is passed, `generate_default_model` is used."""
-        print "Starting training..."
-        start = time.time()
-
-        # The training will be run on the CPU. If a GPU is available it should be used instead.
-        backend = gen_backend(backend='cpu',
-                              batch_size=self.batch_size,
-                              rng_seed=self.random_seed,
-                              stochastic_round=False)
-
-        cost = GeneralizedCost(
-            name='cost',
-            costfunc=CrossEntropyMulti())
-
-        optimizer = GradientDescentMomentum(
-            learning_rate=self.lrate,
-            momentum_coef=0.9)
-
-        # set up the model and experiment
-        if not model:
-            model = self.generate_default_model(dataset.num_labels)
-
+            
+    def _load_backend_parameters_from(self, path):
+        yaml_file = open(self.model_yaml_path, 'r')
+        yaml_str = yaml_file.read()
+        root_yaml = yaml.safe_load(yaml_str)
+    
+        epochs = root_yaml['epochs'] if 'epochs' in root_yaml else self.Default_Max_Epochs
+        batch_size = root_yaml['batchsize'] if 'batchsize' in root_yaml else self.Default_Batch_Size
+        return batch_size, epochs
+    
+    def _configure_callbacks(self, model, train, test):
+        # Wrapper class to allow dynamic property changes
+        class NeonCallbackParameters(object):
+            pass
+        
         args = NeonCallbackParameters()
         args.output_file = os.path.join(self.root_path, self.Callback_Store_Filename)
         args.evaluation_freq = 1
@@ -111,14 +62,30 @@ class MLPMeasurementModel(object):
         args.serialize = 1
         args.history = 100
         args.model_file = None
-
-        callbacks = Callbacks(model, dataset.train(), args, eval_set=dataset.test())
-
+    
+        callbacks = Callbacks(model, train, args, eval_set=test)
+    
         # add a callback that saves the best model state
         callbacks.add_save_best_state_callback(self.model_path)
+        return callbacks
 
-        # Uncomment line below to run on GPU using cudanet backend
-        # backend = gen_backend(rng_seed=0, gpu='cudanet')
+    def train(self, dataset):
+        """Trains the passed model on the given dataset. If no model is passed, `generate_default_model` is used."""
+        print "Starting training..."
+        start = time.time()
+
+        # The training will be run on the CPU. If a GPU is available it should be used instead.
+        backend = gen_backend(backend='cpu',
+                              batch_size=30,
+                              rng_seed=self.random_seed,
+                              stochastic_round=False)
+
+        # set up the model and experiment
+        backend.bsz = self.batch_size
+        model, cost, optimizer = create_objects(self.model_yaml_path)
+        callbacks = self._configure_callbacks(model, dataset.train(), dataset.test())
+
+        print 'Epochs: %d Batch-Size: %d' % (self.max_epochs, self.batch_size)
         model.fit(
             dataset.train(),
             optimizer=optimizer,

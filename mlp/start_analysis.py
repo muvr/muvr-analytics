@@ -7,7 +7,7 @@ from training.mlp_model import MLPMeasurementModel
 
 def learn_model_from_data(dataset_directory, working_directory, user_id):
     dataset = AccelerationDataset(dataset_directory)
-    mlpmodel = MLPMeasurementModel(working_directory)
+    mlpmodel = MLPMeasurementModel(working_directory, "../models/exercise-mlp.yaml")
 
     trainedModel = mlpmodel.train(dataset)
 

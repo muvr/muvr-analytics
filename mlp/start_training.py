@@ -11,6 +11,12 @@ from converters import neon2iosmlp
 from pylab import *
 
 
+class HelpPrintingParser(argparse.ArgumentParser):
+    def error(self, message):
+        sys.stderr.write('error: %s\n' % message)
+        self.print_help()
+        sys.exit(2)
+
 def visualise_dataset(dataset, output_image):
     """Visualise partly the dataset and save as image file"""
 
@@ -49,9 +55,9 @@ def visualise_dataset(dataset, output_image):
     savefig(output_image)
 
 
-def learn_model_from_data(dataset, working_directory, model_name):
+def learn_model_from_data(model_yaml, dataset, working_directory, model_name):
     """Use MLP to train the dataset and generate result in working_directory"""
-    mlpmodel = MLPMeasurementModel(working_directory)
+    mlpmodel = MLPMeasurementModel(working_directory, model_yaml)
 
     trained_model = mlpmodel.train(dataset)
 
@@ -113,7 +119,7 @@ def write_to_csv(filename, data):
     csvfile.close()
 
 
-def main(dataset_directory, working_directory, evaluation_file, visualise_image, model_name, test_directory):
+def main(model_yaml, dataset_directory, working_directory, evaluation_file, visualise_image, model_name, test_directory):
     """Main entry point."""
 
     # 1/ Load the dataset
@@ -127,7 +133,7 @@ def main(dataset_directory, working_directory, evaluation_file, visualise_image,
     visualise_dataset(dataset, visualise_image)
 
     # 3/ Train the dataset using MLP
-    mlpmodel, trained_model = learn_model_from_data(dataset, working_directory, model_name)
+    mlpmodel, trained_model = learn_model_from_data(model_yaml, dataset, working_directory, model_name)
 
     # 4/ Evaluate the trained model
     table = show_evaluation(trained_model, dataset)
@@ -137,7 +143,8 @@ def main(dataset_directory, working_directory, evaluation_file, visualise_image,
     
 if __name__ == '__main__':
     """List arguments for this program"""
-    parser = argparse.ArgumentParser(description='Train and evaluate the exercise dataset.')
+    parser = HelpPrintingParser(description='Train and evaluate the exercise dataset.')
+    parser.add_argument('model_yaml', metavar='model_yaml', type=str, help="yaml definition file of the model")
     parser.add_argument('-d', metavar='dataset', type=str, help="folder containing exercise dataset")
     parser.add_argument('-t', metavar='test', type=str, help="test dataset")
     parser.add_argument('-o', metavar='output', default='./output', type=str, help="folder containing generated model")
@@ -148,6 +155,6 @@ if __name__ == '__main__':
 
     #
     # A good example of command-line params is
-    # -m core -d ../../muvr-training-data/labelled/core -o ../output/ -v ../output/v.png -e  ../output/e.csv
+    # ../models/exercise-mlp.yaml -m core -d ../../muvr-training-data/labelled/core -o ../output/ -v ../output/v.png -e  ../output/e.csv
     #
-    sys.exit(main(args.d, args.o, args.e, args.v, args.m, args.t))
+    sys.exit(main(args.model_yaml, args.d, args.o, args.e, args.v, args.m, args.t))
