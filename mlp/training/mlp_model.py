@@ -136,7 +136,7 @@ class MLPMeasurementModel(object):
 
     def getLayer(self, dataset, model):
         layerconfig = [dataset.num_features]
-        for layer in model.layers:
+        for layer in model.layers.layers:
             if isinstance(layer, Linear):
                 layerconfig.append(layer.nout)
         return layerconfig

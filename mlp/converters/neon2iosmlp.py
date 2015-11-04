@@ -17,8 +17,8 @@ def extract_weights(file_name):
 
     for layer_idx in range(0, num_linear_layers, 2):
         # Make sure our model has biases activated, otherwise add zeros here
-        b = params["layer_params_states"][layer_idx + 1]['params']
-        w = params["layer_params_states"][layer_idx]['params']
+        b = params["layer_params_states"][layer_idx + 1]['params']['W']
+        w = params["layer_params_states"][layer_idx]['params']['W']
 
         layer_vector = np.ravel(np.hstack((b, w)))
         [vec.append(nv) for nv in layer_vector]
