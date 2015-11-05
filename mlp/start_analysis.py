@@ -25,9 +25,6 @@ def learn_model_from_data(dataset, working_directory, user_id):
 def print_it(x):
     print x
 
-def is_spark_dump_file(filename):
-    return filename.startswith('part')
-
 def trainModelOnUserData((user, rows)):
     user_id = user["user_id"]
     sorted_samples = sorted(rows, key=attrgetter("record_time"))
@@ -35,27 +32,29 @@ def trainModelOnUserData((user, rows)):
 
     dataset = SparkAccelerationDataset(train_examples, test_list=[])
     
-    model = learn_model_from_data(dataset, os.path.join(os.path.abspath("../output"), 'models', user_id),user_id)
+    model = learn_model_from_data(dataset, os.path.join(conf["working_directory"], 'models', user_id), user_id)
     
     return user, model
 
 def main(sc):
     """Main entry point. Connects to cassandra and starts training."""
-    lines = sc \
-        .cassandraTable("muvrtest", "samples") \
+    sc \
+        .cassandraTable(conf["cassandra_keyspace"], conf["cassandra_table"]) \
         .select("user_id", "record_id", "record_time", "x", "y", "z", "label") \
         .spanBy('user_id') \
         .map(trainModelOnUserData) \
-    # TODO: Decide what to do with the trained model
+        # TODO: Decide what to do with the trained model
     
 
 if __name__ == '__main__':
-    # TODO: Where to get cluster ip from?
-    # TODO: Which keyspace?
+
     conf = {
         'target_length': 400,
         'number_of_labels': 3,
-        'cassandra_address': "localhost"
+        'cassandra_address': "localhost",
+        'cassandra_keyspace': "muvrtest",
+        'cassandra_table': "samples",
+        'working_directory': os.path.abspath("../output")
     }
 
     conf = SparkConf() \

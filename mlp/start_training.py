@@ -5,7 +5,7 @@ import numpy as np
 import csv
 
 from sklearn.metrics import confusion_matrix
-from training.acceleration_dataset import AccelerationDataset
+from training.acceleration_dataset import CSVAccelerationDataset
 from training.mlp_model import MLPMeasurementModel
 from converters import neon2iosmlp
 from pylab import *
@@ -117,7 +117,7 @@ def main(dataset_directory, working_directory, evaluation_file, visualise_image,
     """Main entry point."""
 
     # 1/ Load the dataset
-    dataset = AccelerationDataset(dataset_directory, test_directory)
+    dataset = CSVAccelerationDataset(dataset_directory, test_directory)
     print "Number of training examples:", dataset.num_train_examples
     print "Number of test examples:", dataset.num_test_examples
     print "Number of features:", dataset.num_features
