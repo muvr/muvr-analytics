@@ -52,6 +52,149 @@ class AccelerationDataset(object):
             f.write("%s\n" % label)
         f.close()
 
+    def generate_examples(self, examples):
+
+        return examples
+    
+    def prepare_dataset(self, dataset, add_generated_examples):
+        self.logger.info("Loading DS from files...")
+    
+        dataset = self.generate_examples(dataset) if add_generated_examples else dataset
+    
+        augmented = self.augmenter.augment_examples(dataset, 400)
+        print "Augmented `train` with %d examples, %d originally" % (
+            augmented.num_examples - dataset.num_examples, dataset.num_examples)
+        
+        if augmented.num_examples > 0:
+            augmented.shuffle()
+            augmented.scale_features(self.Feature_Range, self.Feature_Mean)
+        
+        return augmented
+    
+    # Load label mapping and train / test data from disk.
+    def __init__(self, train_examples, test_examples=None, add_generated_examples=True):
+        """Initialize the dataset using the provided train and test examples."""
+
+        self.logger.info("Loading DS from files...")
+        self.augmenter = SignalAugmenter(augmentation_start=0.1, augmentation_end=0.9)
+
+        train = self.prepare_dataset(train_examples, add_generated_examples)
+        test = self.prepare_dataset(test_examples, add_generated_examples)
+
+        self.id_label_mapping = {v: k for k, v in self.label_id_mapping.items()}
+        self.X_train = self.flatten2d(train.features)
+        self.y_train = train.labels
+        self.X_test = self.flatten2d(test.features)
+        self.y_test = test.labels
+
+        self.num_labels = len(self.id_label_mapping)
+        self.num_features = self.X_train.shape[1]
+        self.num_train_examples = self.X_train.shape[0]
+        self.num_test_examples = self.X_test.shape[0]
+
+    @staticmethod
+    def flatten2d(npa):
+        """Take a 3D array and flatten the last dimension."""
+        if npa.shape[0] > 0:
+            return npa.reshape((npa.shape[0], -1))
+        else:
+            return npa
+
+    # Get the dataset ready for Neon training
+    def train(self):
+        """Provide neon data iterator for training purposes."""
+        return DataIterator(
+            X=self.X_train,
+            y=self.y_train,
+            nclass=self.num_labels,
+            make_onehot=True,
+            lshape=(self.num_features, 1, 1))
+
+    def test(self):
+        """Provide neon data iterator for testing purposes."""
+        if self.num_test_examples > 0:
+            return DataIterator(
+                X=self.X_test,
+                y=self.y_test,
+                nclass=self.num_labels,
+                make_onehot=True,
+                lshape=(self.num_features, 1, 1))
+        else:
+            return None
+
+
+class SparkAccelerationDataset(AccelerationDataset):
+    def __init__(self, train_list, test_list, label_mapper=lambda x: x, add_generated_examples = True):
+        """Load the data from the provided nested list of examples."""
+
+        print "len train", len(train_list)
+        print "len test", len(test_list)
+
+        train = self.transform_to_example_coll(train_list, label_mapper)
+        test = self.transform_to_example_coll(test_list, label_mapper)
+
+        print "len train", len(train.labels)
+        print "len test", len(test.labels)
+
+        # train.shuffle()
+        # test.shuffle()
+
+        super(SparkAccelerationDataset, self).__init__(train, test, add_generated_examples)
+
+    def transform_to_example_coll(self, examples, label_mapper):
+        def transform(example):
+            """Load a single example from a CSV file."""
+            print "example len: ", len(example)
+            single_examples = []
+            x_buffer = []
+            last_label = None
+            for row in example:
+                label = row["label"]
+                if last_label and label != last_label:
+                    x = np.transpose(np.reshape(np.asarray(x_buffer, dtype=float), (len(x_buffer), len(x_buffer[0]))))
+                    single_examples.append((label_mapper(last_label), x))
+                    x_buffer = []
+                x_buffer.append([row["x"], row["y"], row["z"]])
+                last_label = label
+            
+            if len(x_buffer) > 0:
+                x = np.transpose(np.reshape(np.asarray(x_buffer, dtype=float), (len(x_buffer), len(x_buffer[0]))))
+                single_examples.append((label_mapper(last_label), x))
+
+            return single_examples
+        
+        xs = []
+        ys = []
+        for example in examples:
+            for label, x in transform(example):
+                if label not in self.label_id_mapping:
+                    self.label_id_mapping[label] = len(self.label_id_mapping)
+                xs.append(x)
+                ys.append(self.label_id_mapping[label])
+
+        return ExampleColl(xs, ys)
+
+class CSVAccelerationDataset(AccelerationDataset):
+    def __init__(self, directory, test_directory=None, label_mapper=lambda x: x, add_generated_examples = True):
+        """Load the dataset data from the directory.
+
+        If two directories are passed the second is interpreted as the test dataset. If only one dataset gets passed,
+         this dataset will get split into test and train. The label_mapper`allows to modify loaded labels. This is
+         useful e.g. to map multiple labels to a single on ("arms/biceps-curl" --> "-/exercising", ...)."""
+        
+        # If we get provided with a test directory, we are going to use that. Otherwise we will split the dataset in
+        # test and train on our own.
+        if test_directory:
+            train = self.load_examples(directory, label_mapper)
+            test = self.load_examples(test_directory, label_mapper)
+        else:
+            examples = self.load_examples(directory, label_mapper)
+            examples.shuffle()
+
+            train, test = examples.split(self.TRAIN_RATIO)
+        
+        super(CSVAccelerationDataset, self).__init__(train, test, add_generated_examples)
+    
     def load_examples(self, path, label_mapper):
         """
         Load examples contained in the path into an example collection. Examples need to be stored in CSVs.
@@ -85,123 +228,45 @@ class AccelerationDataset(object):
         xs = []
         ys = []
         for f in csv_files:
-            label_dictionary = self.load_example(f)
-            for read_label, X in label_dictionary.iteritems():
-                label = label_mapper(read_label)
+            for label, x in self.load_example(f, label_mapper):
                 if label not in self.label_id_mapping:
                     self.label_id_mapping[label] = len(self.label_id_mapping)
-                xs.append(X)
+                xs.append(x)
                 ys.append(self.label_id_mapping[label])
 
         return ExampleColl(xs, ys)
 
     @staticmethod
-    def load_example(filename):
+    def load_example(filename, label_mapper):
         """Load a single example from a CSV file.
         Return a dictionary object with key is label, value is the list of data with that label"""
-
+        single_examples = []
+        
         with open(filename, 'rb') as csvfile:
             dialect = csv.Sniffer().sniff(csvfile.read(1024))
             csvfile.seek(0)
             csv_data = csv.reader(csvfile, dialect)
-            label_data_mapping = {}
+
+            x_buffer = []
+            last_label = None
             for row in csv_data:
                 if len(row) == 7:
                     # New format (len = 7)
                     #   X | Y | Z | '' | '' | '' | ''(without label)
                     #   X | Y | Z | biceps-curl | intensity | weight | repetition
                     new_data = row[0:3]
-                    if row[3] == "":
-                        label = "unlabelled"
-                    else:
-                        # ignore the information (intensity/weight/repetition)
-                        label = row[3]
+                    label = row[3]
+                    if last_label and label != last_label:
+                        x = np.transpose(np.reshape(np.asarray(x_buffer, dtype=float), (len(x_buffer), len(x_buffer[0]))))
+                        single_examples.append((label_mapper(last_label), x))
+                        x_buffer = []
+                    x_buffer.append(new_data)
+                    last_label = label
                 else:
                     raise Exception("Bad format")
-                if label != "":
-                    old_data = label_data_mapping.get(label, [])
-                    old_data.append(new_data)
-                    label_data_mapping[label] = old_data
 
-            for label in label_data_mapping:
-                x = label_data_mapping[label]
-                label_data_mapping[label] = np.transpose(np.reshape(np.asarray(x, dtype=float), (len(x), len(x[0]))))
+            if len(x_buffer) > 0:
+                x = np.transpose(np.reshape(np.asarray(x_buffer, dtype=float), (len(x_buffer), len(x_buffer[0]))))
+                single_examples.append((label_mapper(last_label), x))
 
-        return label_data_mapping
-
-    def generate_examples(self, examples):
-
-        return examples
-
-    # Load label mapping and train / test data from disk.
-    def __init__(self, directory, test_directory=None, label_mapper=lambda x: x, add_generated_examples = True):
-        """Load the dataset data from the directory.
-
-        If two directories are passed the second is interpreted as the test dataset. If only one dataset gets passed,
-         this dataset will get split into test and train. The label_mapper`allows to modify loaded labels. This is
-         useful e.g. to map multiple labels to a single on ("arms/biceps-curl" --> "-/exercising", ...)."""
-
-        self.logger.info("Loading DS from files...")
-        self.augmenter = SignalAugmenter(augmentation_start=0.1, augmentation_end=0.9)
-
-        # If we get provided with a test directory, we are going to use that. Otherwise we will split the dataset in
-        # test and train on our own.
-        if test_directory:
-            train = self.load_examples(directory, label_mapper)
-            test = self.load_examples(test_directory, label_mapper)
-        else:
-            examples = self.load_examples(directory, label_mapper)
-            examples.shuffle()
-
-            train, test = examples.split(self.TRAIN_RATIO)
-
-        if add_generated_examples:
-            train = self.generate_examples(train)
-            test = self.generate_examples(test)
-
-        augmented_train = self.augmenter.augment_examples(train, 400)
-        print "Augmented `train` with %d examples, %d originally" % (
-            augmented_train.num_examples - train.num_examples, train.num_examples)
-        augmented_train.shuffle()
-        # augmented_train.scale_features(self.Feature_Range, self.Feature_Mean)
-
-        augmented_test = self.augmenter.augment_examples(test, 400)
-        print "Augmented `test` with %d examples, %d originally" % (
-            augmented_test.num_examples - test.num_examples, test.num_examples)
-        augmented_test.shuffle()
-        # augmented_test.scale_features(self.Feature_Range, self.Feature_Mean)
-
-        self.id_label_mapping = {v: k for k, v in self.label_id_mapping.items()}
-        self.X_train = self.flatten2d(augmented_train.features)
-        self.y_train = augmented_train.labels
-        self.X_test = self.flatten2d(augmented_test.features)
-        self.y_test = augmented_test.labels
-
-        self.num_labels = len(self.id_label_mapping)
-        self.num_features = self.X_train.shape[1]
-        self.num_train_examples = self.X_train.shape[0]
-        self.num_test_examples = self.X_test.shape[0]
-
-    @staticmethod
-    def flatten2d(npa):
-        """Take a 3D array and flatten the last dimension."""
-        return npa.reshape((npa.shape[0], -1))
-
-    # Get the dataset ready for Neon training
-    def train(self):
-        """Provide neon data iterator for training purposes."""
-        return DataIterator(
-            X=self.X_train,
-            y=self.y_train,
-            nclass=self.num_labels,
-            make_onehot=True,
-            lshape=(self.num_features, 1, 1))
-
-    def test(self):
-        """Provide neon data iterator for testing purposes."""
-        return DataIterator(
-            X=self.X_test,
-            y=self.y_test,
-            nclass=self.num_labels,
-            make_onehot=True,
-            lshape=(self.num_features, 1, 1))
+        return single_examples
