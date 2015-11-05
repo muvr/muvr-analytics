@@ -127,17 +127,8 @@ class SparkAccelerationDataset(AccelerationDataset):
     def __init__(self, train_list, test_list, label_mapper=lambda x: x, add_generated_examples = True):
         """Load the data from the provided nested list of examples."""
 
-        print "len train", len(train_list)
-        print "len test", len(test_list)
-
         train = self.transform_to_example_coll(train_list, label_mapper)
         test = self.transform_to_example_coll(test_list, label_mapper)
-
-        print "len train", len(train.labels)
-        print "len test", len(test.labels)
-
-        # train.shuffle()
-        # test.shuffle()
 
         super(SparkAccelerationDataset, self).__init__(train, test, add_generated_examples)
 
