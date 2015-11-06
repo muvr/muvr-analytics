@@ -49,7 +49,7 @@ class AccelerationDataset(object):
         dataset = self.generate_examples(dataset) if add_generated_examples else dataset
     
         augmented = self.augmenter.augment_examples(dataset, self.Target_Feature_Length)
-        logger.info("Augmented with %d examples, %d originally" % (
+        self.logger.info("Augmented with %d examples, %d originally" % (
             augmented.num_examples - dataset.num_examples, dataset.num_examples))
         
         if augmented.num_examples > 0:

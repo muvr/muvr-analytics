@@ -71,7 +71,7 @@ if __name__ == '__main__':
         "target_length": 400,
         "number_of_labels": 3,
         "cassandra": {
-            "address": "52.8.10.117,52.8.19.121",
+            "address": "52.8.10.117",
             "data_keyspace": "training",
             "data_table": "data",
             "model_keyspace": "training",
