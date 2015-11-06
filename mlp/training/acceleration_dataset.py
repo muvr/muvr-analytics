@@ -12,39 +12,26 @@ from training.examples import ExampleColl
 
 class AccelerationDataset(object):
     """Dataset containing examples based on acceleration data and their labels."""
-    logger = logging.getLogger("analysis.AccelerationDataset")
+    logger = logging.getLogger("training.AccelerationDataset")
 
     TRAIN_RATIO = 0.8
 
     # This defines the range of the values the accelerometer measures
     Feature_Range = 8000
     Feature_Mean = 0
-
-    # Augmenter used to increase the number of training examples
-    augmenter = None
-
-    # Number of examples
-    num_train_examples = None
-    num_test_examples = None
-
-    # Number of classes
-    num_labels = None
-    num_features = None
-
-    # Indicator if the data has been loaded yet
-    initialized = False
-
-    # Mapping of integer class labels to strings
-    id_label_mapping = {}
-    label_id_mapping = {}
+    
+    Target_Feature_Length = 400
 
     def human_label_for(self, label_id):
         """Convert a label id into a human readable string label."""
         return self.id_label_mapping[label_id]
 
+    def ordered_labels(self):
+        return collections.OrderedDict(sorted(self.id_label_mapping.items())).values()
+
     def save_labels(self, filename):
         """Store the label <--> id mapping to file. The id is defined by the line number."""
-        labels = collections.OrderedDict(sorted(self.id_label_mapping.items())).values()
+        labels = self.ordered_labels()
 
         f = open(filename, 'wb')
 
@@ -61,9 +48,9 @@ class AccelerationDataset(object):
     
         dataset = self.generate_examples(dataset) if add_generated_examples else dataset
     
-        augmented = self.augmenter.augment_examples(dataset, 400)
-        print "Augmented `train` with %d examples, %d originally" % (
-            augmented.num_examples - dataset.num_examples, dataset.num_examples)
+        augmented = self.augmenter.augment_examples(dataset, self.Target_Feature_Length)
+        logger.info("Augmented with %d examples, %d originally" % (
+            augmented.num_examples - dataset.num_examples, dataset.num_examples))
         
         if augmented.num_examples > 0:
             augmented.shuffle()
@@ -124,23 +111,24 @@ class AccelerationDataset(object):
 
 
 class SparkAccelerationDataset(AccelerationDataset):
-    def __init__(self, train_list, test_list, label_mapper=lambda x: x, add_generated_examples = True):
+    def __init__(self, example_list, label_mapper=lambda x: x, add_generated_examples = True):
         """Load the data from the provided nested list of examples."""
+        self.label_id_mapping = {}
+        examples = self.transform_to_example_coll(example_list, label_mapper)
+        examples.shuffle()
 
-        train = self.transform_to_example_coll(train_list, label_mapper)
-        test = self.transform_to_example_coll(test_list, label_mapper)
+        train, test = examples.split(self.TRAIN_RATIO)
 
         super(SparkAccelerationDataset, self).__init__(train, test, add_generated_examples)
 
     def transform_to_example_coll(self, examples, label_mapper):
         def transform(example):
             """Load a single example from a CSV file."""
-            print "example len: ", len(example)
             single_examples = []
             x_buffer = []
             last_label = None
             for row in example:
-                label = row["label"]
+                label = row["exercise"]
                 if last_label and label != last_label:
                     x = np.transpose(np.reshape(np.asarray(x_buffer, dtype=float), (len(x_buffer), len(x_buffer[0]))))
                     single_examples.append((label_mapper(last_label), x))

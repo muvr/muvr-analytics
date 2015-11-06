@@ -6,7 +6,7 @@ import csv
 
 from sklearn.metrics import confusion_matrix
 from training.acceleration_dataset import CSVAccelerationDataset
-from training.mlp_model import MLPMeasurementModel
+from training.mlp_model import MLPMeasurementModelTrainer
 from converters import neon2iosmlp
 from pylab import *
 
@@ -51,17 +51,17 @@ def visualise_dataset(dataset, output_image):
 
 def learn_model_from_data(dataset, working_directory, model_name):
     """Use MLP to train the dataset and generate result in working_directory"""
-    mlpmodel = MLPMeasurementModel(working_directory)
+    model_trainer = MLPMeasurementModelTrainer(working_directory)
 
-    trained_model = mlpmodel.train(dataset)
+    trained_model = model_trainer.train(dataset)
 
     dataset.save_labels(os.path.join(working_directory, model_name + '_model.labels.txt'))
-    neon2iosmlp.convert(mlpmodel.model_path, os.path.join(working_directory, model_name + '_model.weights.raw'))
+    neon2iosmlp.convert(model_trainer.model_path, os.path.join(working_directory, model_name + '_model.weights.raw'))
 
-    layers = mlpmodel.getLayer(dataset, trained_model)
-    neon2iosmlp.write_model_to_file(layers, os.path.join(working_directory, model_name + '_model.layers.txt'))
+    layers = model_trainer.layers(dataset, trained_model)
+    neon2iosmlp.write_layers_to_file(layers, os.path.join(working_directory, model_name + '_model.layers.txt'))
 
-    return mlpmodel, trained_model
+    return model_trainer, trained_model
 
 
 def predict(model, dataset):
