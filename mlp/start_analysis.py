@@ -68,8 +68,6 @@ def main(sc):
 if __name__ == '__main__':
 
     conf = {
-        "target_length": 400,
-        "number_of_labels": 3,
         "cassandra": {
             "address": "52.8.10.117",
             "data_keyspace": "training",
