@@ -71,10 +71,10 @@ if __name__ == '__main__':
         "target_length": 400,
         "number_of_labels": 3,
         "cassandra": {
-            "address": "localhost",
-            "data_keyspace": "muvr",
-            "data_table": "samples",
-            "model_keyspace": "muvr",
+            "address": "52.8.10.117,52.8.19.121",
+            "data_keyspace": "training",
+            "data_table": "data",
+            "model_keyspace": "training",
             "model_table": "models"
         },
         "working_directory": os.path.abspath("../output")
