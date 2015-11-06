@@ -25,21 +25,23 @@ def extract_weights(file_name):
     return vec
 
 
+def model2string(neon_model_path):
+    """Serialize the model at the path to a string representation."""
+    
+    weights = extract_weights(neon_model_path)
+    return struct.pack('f' * len(weights), *weights)
+
 def convert(neon_model_path, output_filename):
     """Convert the serialization of a neon model into an iOS MLP model."""
 
-    weights = extract_weights(neon_model_path)
-    f = open(output_filename, "wb")
+    with open(output_filename, "wb") as f:
+        #  You can use 'd' for double and < or > to force endinness
+        model_as_string = model2string(neon_model_path)
+        f.write(model_as_string)
 
-    #  You can use 'd' for double and < or > to force endinness
-    bin_data = struct.pack('f' * len(weights), *weights)
-
-    f.write(bin_data)
-    f.close()
-
-
-def write_model_to_file(layers, output_filename):
-    f = open(output_filename, 'w')
-    data = " ".join(str(e) for e in layers)
-    f.write(data)
-    f.close()
+def write_layers_to_file(layers, output_filename):
+    """Write the layer configuration of a model to the output file."""
+    
+    with open(output_filename, 'w') as f:
+        data = " ".join(str(e) for e in layers)
+        f.write(data)

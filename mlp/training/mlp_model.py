@@ -15,7 +15,7 @@ from training import utils
 class NeonCallbackParameters(object):
     pass
 
-class MLPMeasurementModel(object):
+class MLPMeasurementModelTrainer(object):
     """Wrapper around a neon MLP model that controls training parameters and configuration of the model."""
 
     random_seed = 666  # Take your lucky number
@@ -50,6 +50,16 @@ class MLPMeasurementModel(object):
         bias_init = Constant(val=1.0)
 
         layers = []
+        layers.append(Affine(
+            nout=500,
+            init=init_norm,
+            bias=bias_init,
+            activation=Rectlin()))
+
+        layers.append(Dropout(
+            name="do_1",
+            keep=0.9))
+    
         layers.append(Affine(
             nout=250,
             init=init_norm,
@@ -134,7 +144,7 @@ class MLPMeasurementModel(object):
 
         return model
 
-    def getLayer(self, dataset, model):
+    def layers(self, dataset, model):
         layerconfig = [dataset.num_features]
         for layer in model.layers.layers:
             if isinstance(layer, Linear):

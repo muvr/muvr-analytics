@@ -1,6 +1,5 @@
 import random
 import numpy as np
-from time import time
 
 
 class ExampleColl(object):

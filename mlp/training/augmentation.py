@@ -1,11 +1,13 @@
 """Create new examples from existing one reproducing natural variation in the data"""
 
 import numpy as np
-import math
 from training.examples import ExampleColl
+import logging
 
 
 class SignalAugmenter(object):
+    logger = logging.getLogger("training.SignalAugmenter")
+    
     """Dataset augmentation specialized for one dimensional data.
 
     A sliding window will be used to move it over the examples to augment the dataset with new examples."""
@@ -14,20 +16,24 @@ class SignalAugmenter(object):
         self.augmentation_start = augmentation_start
         self.augmentation_end = augmentation_end
 
-    def augment_examples(self, examples, target_length):
+    def augment_examples(self, examples, target_feature_length):
         """Augments all the passed examples (should be a np array with 3 dimensions)."""
         augmented = []
         augmented_labels = []
         for i, features in enumerate(examples.features):
-            if np.shape(features)[1] >= target_length:
-                single_augmented, single_labels = self.augment_example(features, examples.labels[i], target_length)
-                augmented.append(single_augmented)
-                augmented_labels.append(single_labels)
+            if np.shape(features)[1] >= target_feature_length:
+                one_augmented, one_labels = self.augment_example(features, examples.labels[i], target_feature_length)
+                augmented.append(one_augmented)
+                augmented_labels.append(one_labels)
             else:
-                print("Dropped an example because it was to short. Length: %d" % np.shape(features)[1])
+                self.logger.warn("Dropped an example because it was to short. Length: %d Expected: %d" % 
+                                 (np.shape(features)[1], target_feature_length))
 
-        return ExampleColl(np.vstack(augmented), np.hstack(augmented_labels))
-
+        if len(augmented) > 0:
+            return ExampleColl(np.vstack(augmented), np.hstack(augmented_labels))
+        else:
+            return ExampleColl(np.empty((0, target_feature_length)), np.empty((0, 1)))
+        
     def augment_example(self, example, label, target_length, window_step_size=5):
         """Example should be a numpy array, label a single label id."""
         dimensions = np.shape(example)[0]
