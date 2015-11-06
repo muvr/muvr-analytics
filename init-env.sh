@@ -31,11 +31,6 @@ cd -
 # Install Spark
 cd $VENV
 
-if ! [ `command -v scala` ]
-then
-  brew install scala
-fi
-
 if ! [ `command -v pv` ]
 then
   brew install pv
@@ -44,8 +39,8 @@ curl http://mirror.catn.com/pub/apache/spark/spark-1.5.1/spark-1.5.1-bin-hadoop2
 [ $(pv spark-1.5.1-bin-hadoop2.6.tgz | tar xzf -) ] || tar xzf spark-1.5.1-bin-hadoop2.6.tgz
 
 cd -
-cat >> $VENV/bin/activate << EOF
 SPARK_HOME=`pwd`/$VENV/spark-1.5.1-bin-hadoop2.6
+cat >> $VENV/bin/activate << EOF
 export SPARK_HOME=$SPARK_HOME
 export PYTHONPATH=$SPARK_HOME/python:$SPARK_HOME/python/build:$PYTHONPATH
 export PATH=$SPARK_HOME/bin:$PATH
