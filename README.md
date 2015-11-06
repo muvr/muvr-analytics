@@ -59,7 +59,7 @@ source venv/bin/activate
 ```
 Start notebooks
 ```bash
-jupyter notebook
+jupyter notebook --ip="*"
 ```
 
 ### Issues
