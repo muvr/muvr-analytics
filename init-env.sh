@@ -9,13 +9,13 @@ fi
 
 # Create virtual env
 VENV=venv
-sudo pip install virtualenv
+sudo pip2.7 install virtualenv
 rm -rf $VENV
 virtualenv $VENV -p /usr/bin/python2.7
 source $VENV/bin/activate
 
 # Install dependencies
-pip install --download-cache=cache -r muvr.pip
+pip2.7 install --download-cache=cache -r muvr.pip
 
 # Insteall neon latest
 git clone --branch v1.1.0 https://github.com/NervanaSystems/neon.git $VENV/neon
