@@ -52,15 +52,6 @@ class MLPMeasurementModelTrainer(object):
         bias_init = Constant(val=1.0)
 
         layers = []
-        layers.append(Affine(
-            nout=500,
-            init=init_norm,
-            bias=bias_init,
-            activation=Rectlin()))
-
-        layers.append(Dropout(
-            name="do_1",
-            keep=0.9))
     
         layers.append(Affine(
             nout=250,
