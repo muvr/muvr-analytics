@@ -1,35 +1,56 @@
 #!/bin/bash
 
-mkdir -p dataset
-mkdir -p output
+usage()
+{
+python mlp/start_training.py -h
+}
 
-if [ -z "$1" ]
-then
-    DATASET="dataset/*.zip"
-else
-    DATASET=$1
-fi
-if [ -z "$2" ]
-then
-    OUTPUT="output"
-else
-    OUTPUT=$2
-fi
+DATASET="dataset/*.zip"
+TEST_FOLDER=
+OUTPUT="output"
+MODEL_NAME="demo"
+
+while getopts "hd:o:t:m:" OPTION
+do
+     case $OPTION in
+         h)
+             usage
+             exit 1
+             ;;
+         d)
+             DATASET=$OPTARG
+             ;;
+         o)
+             OUTPUT=$OPTARG
+             ;;
+         t)
+             TEST_FOLDER=$OPTARG
+             ;;
+         m)
+             MODEL_NAME=$OPTARG
+             ;;
+         ?)
+             echo "Unsupported arguments"
+             exit
+             ;;
+     esac
+done
+
+rm -f $OUTPUT/*
+mkdir -p $OUTPUT
+
 VISUAL="$OUTPUT/visualisation.png"
 EVAL="$OUTPUT/evaluation.csv"
 
-rm -f $VISUAL
-rm -f $EVAL
-
-python mlp/start_training.py -h
 printf "\n\nSTART TRAINING & EVALUATION\n\n"
 
-if [ -z "$3" ]
+if [ -z $TEST_FOLDER ]
 then
-    python mlp/start_training.py -d $DATASET -o $OUTPUT -e $EVAL -v $VISUAL
+    python mlp/start_training.py -d $DATASET -o $OUTPUT -e $EVAL -v $VISUAL -m $MODEL_NAME
 else
-    python mlp/start_training.py -d $DATASET -o $OUTPUT -e $EVAL -v $VISUAL -t $3
+    python mlp/start_training.py -d $DATASET -o $OUTPUT -e $EVAL -v $VISUAL -t $TEST_FOLDER -m $MODEL_NAME
 fi
+
 EXIT_CODE=$?
 if [[ $EXIT_CODE != 0 ]]
 then

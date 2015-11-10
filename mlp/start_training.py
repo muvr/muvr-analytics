@@ -53,7 +53,14 @@ def learn_model_from_data(dataset, working_directory, model_name):
     """Use MLP to train the dataset and generate result in working_directory"""
     model_trainer = MLPMeasurementModelTrainer(working_directory)
 
-    trained_model = model_trainer.train(dataset)
+    if model_name == "slacking":
+        print "Using slacking model"
+        model = model_trainer.generate_slacking_model(dataset.num_labels)
+    else:
+        print "Using default model"
+        model = model_trainer.generate_default_model(dataset.num_labels)
+
+    trained_model = model_trainer.train(dataset, model)
 
     dataset.save_labels(os.path.join(working_directory, model_name + '_model.labels.txt'))
     neon2iosmlp.convert(model_trainer.model_path, os.path.join(working_directory, model_name + '_model.weights.raw'))
