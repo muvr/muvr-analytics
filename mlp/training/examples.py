@@ -1,6 +1,6 @@
 import random
 import numpy as np
-
+import collections
 
 class ExampleColl(object):
     """Collection of training examples. Provides useful helpers to modify the collection."""
@@ -44,3 +44,10 @@ class ExampleColl(object):
         else:
             self.features = np.reshape(np.array(shuffled), (len(shuffled_labels),) + shuffled[0].shape)
             self.labels = np.reshape(np.array(shuffled_labels), (len(shuffled_labels)))
+
+    def print_statistic(self, example_name = "example", label_id_mapping = {}):
+        print "Statistic of ", example_name, ":"
+        counter = collections.Counter(self.labels)
+        for label, id in label_id_mapping.items():
+            print "\t", label, " --> ", counter[id]
+        print "\n"

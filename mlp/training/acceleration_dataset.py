@@ -168,8 +168,12 @@ class CSVAccelerationDataset(AccelerationDataset):
             examples = self.load_examples(directory, label_mapper)
             examples.shuffle()
 
+            examples.print_statistic("all dataset", self.label_id_mapping)
+
             train, test = examples.split(self.TRAIN_RATIO)
-        
+
+        train.print_statistic("train", self.label_id_mapping)
+        test.print_statistic("test", self.label_id_mapping)
         super(CSVAccelerationDataset, self).__init__(train, test, add_generated_examples)
     
     def load_examples(self, path, label_mapper):
