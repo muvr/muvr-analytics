@@ -41,7 +41,7 @@ def convert(neon_model_path, output_filename):
 
 def write_layers_to_file(layers, output_filename):
     """Write the layer configuration of a model to the output file."""
-    
+
     with open(output_filename, 'w') as f:
         data = " ".join(str(e) for e in layers)
         f.write(data)

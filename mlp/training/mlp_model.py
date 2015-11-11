@@ -1,16 +1,18 @@
-from neon.backends import gen_backend
-from neon.layers import Affine, Dropout, GeneralizedCost, Linear
-from neon.transforms import Rectlin, Logistic
-from neon.transforms.cost import CrossEntropyMulti
-from neon.initializers import Uniform, Constant
-import time
-from neon.optimizers import GradientDescentMomentum
-from neon.models import Model
-from neon.callbacks.callbacks import Callbacks
-from neon.transforms import Misclassification
-import os
 import logging
+import time
+
+import os
+from neon.backends import gen_backend
+from neon.callbacks.callbacks import Callbacks
+from neon.initializers import Uniform, Constant
+from neon.layers import Affine, Dropout, GeneralizedCost, Linear, Activation
+from neon.models import Model
+from neon.optimizers import GradientDescentMomentum
+from neon.transforms import Misclassification
+from neon.transforms import Rectlin, Tanh, Logistic
+from neon.transforms.cost import CrossEntropyMulti
 from training import utils
+
 
 class NeonCallbackParameters(object):
     pass
@@ -64,7 +66,7 @@ class MLPMeasurementModelTrainer(object):
             nout=250,
             init=init_norm,
             bias=bias_init,
-            activation=Rectlin()))
+            activation=Tanh()))
 
         layers.append(Dropout(
             name="do_2",
@@ -112,6 +114,9 @@ class MLPMeasurementModelTrainer(object):
         if not model:
             model = self.generate_default_model(dataset.num_labels)
 
+        lc = self.layers(dataset, model)
+        print lc
+
         args = NeonCallbackParameters()
         args.output_file = os.path.join(self.root_path, self.Callback_Store_Filename)
         args.evaluation_freq = 1
@@ -146,7 +151,10 @@ class MLPMeasurementModelTrainer(object):
 
     def layers(self, dataset, model):
         layerconfig = [dataset.num_features]
+        layerconfig.append("id")
         for layer in model.layers.layers:
+            if isinstance(layer, Activation):
+                layerconfig.append(layer.transform.name)
             if isinstance(layer, Linear):
                 layerconfig.append(layer.nout)
         return layerconfig
