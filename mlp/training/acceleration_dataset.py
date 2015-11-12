@@ -33,14 +33,10 @@ class AccelerationDataset(object):
         """Store the label <--> id mapping to file. The id is defined by the line number."""
         labels = self.ordered_labels()
 
-        f = open(filename, 'wb')
-
-        for label in labels:
-            f.write("%s\n" % label)
-        f.close()
+        with open(filename, 'wb') as f:
+            f.write("\n".join(labels))
 
     def generate_examples(self, examples):
-
         return examples
     
     def prepare_dataset(self, dataset, add_generated_examples):
