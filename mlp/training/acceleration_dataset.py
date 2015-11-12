@@ -17,7 +17,7 @@ class AccelerationDataset(object):
     TRAIN_RATIO = 0.8
 
     # This defines the range of the values the accelerometer measures
-    Feature_Range = 8000
+    Feature_Range = 4.0
     Feature_Mean = 0
     
     Target_Feature_Length = 400
