@@ -41,14 +41,15 @@ mkdir -p $OUTPUT
 
 VISUAL="$OUTPUT/visualisation.png"
 EVAL="$OUTPUT/evaluation.csv"
+LOG_FILE="$OUTPUT/training_log"
 
 printf "\n\nSTART TRAINING & EVALUATION\n\n"
 
 if [ -z $TEST_FOLDER ]
 then
-    python mlp/start_training.py -d $DATASET -o $OUTPUT -e $EVAL -v $VISUAL -m $MODEL_NAME
+    python mlp/start_training.py -d $DATASET -o $OUTPUT -e $EVAL -v $VISUAL -m $MODEL_NAME | tee $LOG_FILE
 else
-    python mlp/start_training.py -d $DATASET -o $OUTPUT -e $EVAL -v $VISUAL -t $TEST_FOLDER -m $MODEL_NAME
+    python mlp/start_training.py -d $DATASET -o $OUTPUT -e $EVAL -v $VISUAL -t $TEST_FOLDER -m $MODEL_NAME | tee $LOG_FILE
 fi
 
 EXIT_CODE=$?
