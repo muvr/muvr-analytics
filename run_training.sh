@@ -9,10 +9,14 @@ DATASET="dataset/*.zip"
 TEST_FOLDER=
 OUTPUT="output"
 MODEL_NAME="demo"
+IS_ANALYSIS=
 
-while getopts "hd:o:t:m:" OPTION
+while getopts "hd:o:t:m:a" OPTION
 do
      case $OPTION in
+         a)
+             IS_ANALYSIS="true"
+             ;;
          h)
              usage
              exit 1
@@ -36,27 +40,35 @@ do
      esac
 done
 
+remove_output()
+{
 rm -f $OUTPUT/*
 mkdir -p $OUTPUT
+}
 
 VISUAL="$OUTPUT/visualisation.png"
 EVAL="$OUTPUT/evaluation.csv"
 LOG_FILE="$OUTPUT/training_log"
 
-printf "\n\nSTART TRAINING & EVALUATION\n\n"
+printf "\n\nSTART TRAINING & EVALUATION with parameter:\n\tDataset: %s\n\tTest: %s\n\tOutput: %s\n\tModel: %s\n\n"  "$DATASET" "$TEST_FOLDER" "$OUTPUT" "$MODEL_NAME"
 
-if [ -z $TEST_FOLDER ]
+if ! [ -z $IS_ANALYSIS ]
 then
-    python mlp/start_training.py -d $DATASET -o $OUTPUT -e $EVAL -v $VISUAL -m $MODEL_NAME | tee $LOG_FILE
+    python mlp/start_training.py -d $DATASET -o $OUTPUT -e $EVAL -v $VISUAL -m $MODEL_NAME -analysis | tee $LOG_FILE
 else
-    python mlp/start_training.py -d $DATASET -o $OUTPUT -e $EVAL -v $VISUAL -t $TEST_FOLDER -m $MODEL_NAME | tee $LOG_FILE
-fi
-
-EXIT_CODE=$?
-if [[ $EXIT_CODE != 0 ]]
-then
-    exit $EXIT_CODE
-else
-    open $OUTPUT/visualisation.png
-    open $OUTPUT/evaluation.csv
+    remove_output
+    if [ -z $TEST_FOLDER ]
+    then
+        python mlp/start_training.py -d $DATASET -o $OUTPUT -e $EVAL -v $VISUAL -m $MODEL_NAME | tee $LOG_FILE
+    else
+        python mlp/start_training.py -d $DATASET -o $OUTPUT -e $EVAL -v $VISUAL -t $TEST_FOLDER -m $MODEL_NAME | tee $LOG_FILE
+    fi
+    EXIT_CODE=$?
+    if [[ $EXIT_CODE != 0 ]]
+    then
+        exit $EXIT_CODE
+    else
+#        open $OUTPUT/visualisation.png
+        column -s, -t < $OUTPUT/evaluation.csv
+    fi
 fi

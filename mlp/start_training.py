@@ -120,7 +120,7 @@ def write_to_csv(filename, data):
     csvfile.close()
 
 
-def main(dataset_directory, working_directory, evaluation_file, visualise_image, model_name, test_directory):
+def main(dataset_directory, working_directory, evaluation_file, visualise_image, model_name, test_directory, is_analysis):
     """Main entry point."""
 
     # 1/ Load the dataset
@@ -133,14 +133,15 @@ def main(dataset_directory, working_directory, evaluation_file, visualise_image,
     # 2/ Visualise the dataset
     visualise_dataset(dataset, visualise_image)
 
-    # 3/ Train the dataset using MLP
-    mlpmodel, trained_model = learn_model_from_data(dataset, working_directory, model_name)
+    if not is_analysis:
+        # 3/ Train the dataset using MLP
+        mlpmodel, trained_model = learn_model_from_data(dataset, working_directory, model_name)
 
-    # 4/ Evaluate the trained model
-    table = show_evaluation(trained_model, dataset)
+        # 4/ Evaluate the trained model
+        table = show_evaluation(trained_model, dataset)
 
-    # 5/ Print the evaluation table to csv file
-    write_to_csv(evaluation_file, table)
+        # 5/ Print the evaluation table to csv file
+        write_to_csv(evaluation_file, table)
     
 if __name__ == '__main__':
     """List arguments for this program"""
@@ -151,10 +152,11 @@ if __name__ == '__main__':
     parser.add_argument('-e', metavar='evaluation', default='./output/evaluation.csv', type=str, help="evaluation csv file output")
     parser.add_argument('-v', metavar='visualise', default='./output/visualisation.png', type=str, help="visualisation dataset image output")
     parser.add_argument('-m', metavar='modelname', default='demo', type=str, help="prefix name of model")
+    parser.add_argument('-analysis', action='store_true', default=False)
     args = parser.parse_args()
 
     #
     # A good example of command-line params is
     # -m core -d ../../muvr-training-data/labelled/core -o ../output/ -v ../output/v.png -e  ../output/e.csv
     #
-    sys.exit(main(args.d, args.o, args.e, args.v, args.m, args.t))
+    sys.exit(main(args.d, args.o, args.e, args.v, args.m, args.t, args.analysis))
