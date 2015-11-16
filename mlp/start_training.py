@@ -7,6 +7,7 @@ import csv
 from sklearn.metrics import confusion_matrix
 from training.acceleration_dataset import CSVAccelerationDataset
 from training.mlp_model import MLPMeasurementModelTrainer
+from training.default_model import DefaultModel
 from converters import neon2iosmlp
 from pylab import *
 
@@ -55,7 +56,7 @@ def learn_model_from_data(dataset, working_directory, model_name):
 
     if model_name == "slacking":
         print "Using slacking model"
-        model = model_trainer.generate_slacking_model(dataset.num_labels)
+        model = DefaultModel.get_slacking_model(dataset.num_labels)
     else:
         print "Using default model"
         model = model_trainer.generate_default_model(dataset.num_labels)
@@ -129,6 +130,9 @@ def main(dataset_directory, working_directory, evaluation_file, visualise_image,
     print "Number of test examples:", dataset.num_test_examples
     print "Number of features:", dataset.num_features
     print "Number of labels:", dataset.num_labels
+
+    dataset.train_examples.print_statistic("train", dataset.label_id_mapping)
+    dataset.test_examples.print_statistic("test", dataset.label_id_mapping)
 
     # 2/ Visualise the dataset
     visualise_dataset(dataset, visualise_image)

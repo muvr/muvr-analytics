@@ -75,6 +75,9 @@ class AccelerationDataset(object):
         self.num_train_examples = self.X_train.shape[0]
         self.num_test_examples = self.X_test.shape[0]
 
+        self.train_examples = train_examples
+        self.test_examples = test_examples
+
     @staticmethod
     def flatten2d(npa):
         """Take a 3D array and flatten the last dimension."""
@@ -167,15 +170,10 @@ class CSVAccelerationDataset(AccelerationDataset):
         else:
             examples = self.load_examples(directory, label_mapper)
             examples.shuffle()
-
-            examples.print_statistic("all dataset", self.label_id_mapping)
-
             train, test = examples.split(self.TRAIN_RATIO)
 
-        train.print_statistic("train", self.label_id_mapping)
-        test.print_statistic("test", self.label_id_mapping)
         super(CSVAccelerationDataset, self).__init__(train, test, add_generated_examples)
-    
+
     def load_examples(self, path, label_mapper):
         """
         Load examples contained in the path into an example collection. Examples need to be stored in CSVs.
@@ -198,14 +196,8 @@ class CSVAccelerationDataset(AccelerationDataset):
             zipfile.ZipFile(path, 'r').extractall(root_directory)
 
         #csv_files = filter(lambda f: f.endswith("csv"), os.listdir(root_directory))
-        csv_files = []
-        def append_csv_file(arg, direname, names):
-            for name in names:
-                f = os.path.join(direname, name)
-                if os.path.isfile(f) and f.endswith("csv"):
-                    csv_files.append(f)
+        csv_files = self.read_all_csv(root_directory)
 
-        os.path.walk(root_directory, append_csv_file, None)
         xs = []
         ys = []
         for f in csv_files:
@@ -216,6 +208,18 @@ class CSVAccelerationDataset(AccelerationDataset):
                 ys.append(self.label_id_mapping[label])
 
         return ExampleColl(xs, ys)
+
+    @staticmethod
+    def read_all_csv(root_directory):
+        csv_files = []
+        def append_csv_file(arg, direname, names):
+            for name in names:
+                f = os.path.join(direname, name)
+                if os.path.isfile(f) and f.endswith("csv"):
+                    csv_files.append(f)
+
+        os.path.walk(root_directory, append_csv_file, None)
+        return csv_files
 
     @staticmethod
     def load_example(filename, label_mapper):

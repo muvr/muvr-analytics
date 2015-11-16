@@ -1,9 +1,14 @@
 import random
 import numpy as np
 import collections
+import itertools
+import logging
 
 class ExampleColl(object):
     """Collection of training examples. Provides useful helpers to modify the collection."""
+
+    logger = logging.getLogger("training.ExampleColl")
+    logger.setLevel(logging.INFO)
 
     # To make debugging easier, lets avoid randomness
     Seed = 42  # time()
@@ -45,9 +50,43 @@ class ExampleColl(object):
             self.features = np.reshape(np.array(shuffled), (len(shuffled_labels),) + shuffled[0].shape)
             self.labels = np.reshape(np.array(shuffled_labels), (len(shuffled_labels)))
 
-    def print_statistic(self, example_name = "example", label_id_mapping = {}):
-        print "Statistic of ", example_name, ":"
+    def print_statistic(self, example_name = "example", label_id_mapping = None):
+        self.logger.info("Statistic of %s: %d labelled data" % (example_name, self.num_examples))
         counter = collections.Counter(self.labels)
-        for label, id in label_id_mapping.items():
-            print "\t", label, " --> ", counter[id]
-        print "\n"
+
+        if label_id_mapping is None:
+            for label, count in counter.iteritems():
+                self.logger.info("\t%s --> %d" % (label, count))
+        else:
+            for label, id in label_id_mapping.items():
+                self.logger.info("\t%s --> %d" % (label, counter[id]))
+        self.logger.info("\n")
+
+    def reset_all_labels(self, new_labels):
+        self.labels = [new_labels] * self.num_examples
+
+    def to_csv_data(self):
+        csv_data = []
+        for idx, matrix in enumerate(self.features):
+            label = self.labels[idx]
+            output_filename = label + "_" + str(idx)
+            single_csv = []
+            for one_column in matrix.T:
+                # Format of csv X | Y | Z | biceps-curl | intensity | weight | repetition
+                labelled_data = list(one_column)
+                labelled_data.append(label)
+                labelled_data.append("")
+                labelled_data.append("")
+                labelled_data.append("")
+                single_csv.append(labelled_data)
+            csv_data.append((output_filename, single_csv))
+        return csv_data
+
+    @staticmethod
+    def concat(array_example):
+        features = []
+        labels = []
+        for example in array_example:
+            features = itertools.chain(features, example.features)
+            labels = itertools.chain(labels, example.labels)
+        return ExampleColl(list(features), list(labels))

@@ -82,52 +82,6 @@ class MLPMeasurementModelTrainer(object):
         model = Model(layers=layers)
         return model
 
-    def generate_slacking_model(self, num_labels):
-        """ Generate layers and a MLP model for exercise vs no-exercise"""
-        init_norm = Uniform(low=-0.1, high=0.1)
-        bias_init = Constant(val=1.0)
-
-        layers = []
-
-        layers.append(Affine(
-            nout=500,
-            init=init_norm,
-            bias=bias_init,
-            activation=Rectlin()))
-
-        layers.append(Dropout(
-            name="do_1",
-            keep = 0.9))
-
-        layers.append(Affine(
-            nout=100,
-            init=init_norm,
-            bias=bias_init,
-            activation=Rectlin()))
-
-        layers.append(Dropout(
-            name="do_2",
-            keep = 0.9))
-
-        layers.append(Affine(
-            nout=25,
-            init=init_norm,
-            bias=bias_init,
-            activation=Rectlin()))
-
-        layers.append(Dropout(
-            name="do_3",
-            keep = 0.9))
-
-        layers.append(Affine(
-            nout = num_labels,
-            init=init_norm,
-            bias=bias_init,
-            activation=Logistic()))
-
-        model = Model(layers=layers)
-        return model
-
     def train(self, dataset, model=None):
         """Trains the passed model on the given dataset. If no model is passed, `generate_default_model` is used."""
         print "Starting training..."
