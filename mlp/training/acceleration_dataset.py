@@ -127,14 +127,16 @@ class SparkAccelerationDataset(AccelerationDataset):
                 label = row["exercise"]
                 if last_label and label != last_label:
                     x = np.transpose(np.reshape(np.asarray(x_buffer, dtype=float), (len(x_buffer), len(x_buffer[0]))))
-                    single_examples.append((label_mapper(last_label), x))
+                    if label_mapper(last_label):
+                        single_examples.append((label_mapper(last_label), x))
                     x_buffer = []
                 x_buffer.append([row["x"], row["y"], row["z"]])
                 last_label = label
             
             if len(x_buffer) > 0:
                 x = np.transpose(np.reshape(np.asarray(x_buffer, dtype=float), (len(x_buffer), len(x_buffer[0]))))
-                single_examples.append((label_mapper(last_label), x))
+                if label_mapper(last_label):
+                    single_examples.append((label_mapper(last_label), x))
 
             return single_examples
         
@@ -231,9 +233,10 @@ class CSVAccelerationDataset(AccelerationDataset):
                     #   X | Y | Z | biceps-curl | intensity | weight | repetition
                     new_data = row[0:3]
                     label = row[3]
-                    if last_label and label != last_label:
+                    if last_label is not None and label != last_label:
                         x = np.transpose(np.reshape(np.asarray(x_buffer, dtype=float), (len(x_buffer), len(x_buffer[0]))))
-                        single_examples.append((label_mapper(last_label), x))
+                        if label_mapper(last_label):
+                            single_examples.append((label_mapper(last_label), x))
                         x_buffer = []
                     x_buffer.append(new_data)
                     last_label = label
@@ -242,6 +245,7 @@ class CSVAccelerationDataset(AccelerationDataset):
 
             if len(x_buffer) > 0:
                 x = np.transpose(np.reshape(np.asarray(x_buffer, dtype=float), (len(x_buffer), len(x_buffer[0]))))
-                single_examples.append((label_mapper(last_label), x))
+                if label_mapper(last_label):
+                    single_examples.append((label_mapper(last_label), x))
 
         return single_examples

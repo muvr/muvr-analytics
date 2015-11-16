@@ -22,9 +22,10 @@ class SignalAugmenter(object):
         augmented_labels = []
         for i, features in enumerate(examples.features):
             if np.shape(features)[1] >= target_feature_length:
-                one_augmented, one_labels = self.augment_example(features, examples.labels[i], target_feature_length)
+                label = examples.labels[i]
+                one_augmented = self.augment_example(features, target_feature_length)
                 augmented.append(one_augmented)
-                augmented_labels.append(one_labels)
+                augmented_labels.extend([label] * one_augmented.shape[0])
             else:
                 self.logger.warn("Dropped an example because it was to short. Length: %d Expected: %d" % 
                                  (np.shape(features)[1], target_feature_length))
@@ -34,7 +35,7 @@ class SignalAugmenter(object):
         else:
             return ExampleColl(np.empty((0, target_feature_length)), np.empty((0, 1)))
         
-    def augment_example(self, example, label, target_length, window_step_size=5):
+    def augment_example(self, example, target_length, window_step_size=5):
         """Example should be a numpy array, label a single label id."""
         dimensions = np.shape(example)[0]
         sample_length = np.shape(example)[1]
@@ -49,16 +50,13 @@ class SignalAugmenter(object):
         if (max_idx - min_idx) < target_length:
             start = (sample_length - target_length) / 2
             end = start + target_length
-            return example[np.newaxis, :, start:end], np.array(label)
+            return example[np.newaxis, :, start:end]
         else:
             augmentation_range = range(min_idx, max_idx - target_length, window_step_size)
-            num_augmented = len(augmentation_range)
-            augmented = np.empty((num_augmented, dimensions, target_length))
-            labels = np.empty(num_augmented)
-            labels.fill(label)
+            augmented = np.empty((len(augmentation_range), dimensions, target_length))
             # Use a sliding window to move it over the input example. this will create new examples that can be used for
             # training a model
             for i in augmentation_range:
                 idx = (i - min_idx) / window_step_size
                 augmented[idx, :, :] = example[:, i:(i + target_length)]
-            return augmented, labels
+            return augmented
