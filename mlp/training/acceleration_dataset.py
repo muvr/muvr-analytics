@@ -59,7 +59,7 @@ class AccelerationDataset(object):
         return augmented
     
     # Load label mapping and train / test data from disk.
-    def __init__(self, train_examples, test_examples=None, add_generated_examples=True):
+    def __init__(self, train_examples, test_examples=None, add_generated_examples=True, lshape=None):
         """Initialize the dataset using the provided train and test examples."""
 
         self.logger.info("Loading DS from files...")
@@ -78,6 +78,7 @@ class AccelerationDataset(object):
         self.num_features = self.X_train.shape[1]
         self.num_train_examples = self.X_train.shape[0]
         self.num_test_examples = self.X_test.shape[0]
+        self.lshape = lshape if lshape else (self.num_features, 1, 1)
 
     @staticmethod
     def flatten2d(npa):
@@ -95,7 +96,7 @@ class AccelerationDataset(object):
             y=self.y_train,
             nclass=self.num_labels,
             make_onehot=True,
-            lshape=(self.num_features, 1, 1))
+            lshape=self.lshape)
 
     def test(self):
         """Provide neon data iterator for testing purposes."""
@@ -105,7 +106,7 @@ class AccelerationDataset(object):
                 y=self.y_test,
                 nclass=self.num_labels,
                 make_onehot=True,
-                lshape=(self.num_features, 1, 1))
+                lshape=self.lshape)
         else:
             return None
 
@@ -154,7 +155,7 @@ class SparkAccelerationDataset(AccelerationDataset):
         return ExampleColl(xs, ys)
 
 class CSVAccelerationDataset(AccelerationDataset):
-    def __init__(self, directory, test_directory=None, label_mapper=lambda x: x, add_generated_examples = True):
+    def __init__(self, directory, test_directory=None, label_mapper=lambda x: x, add_generated_examples=True, lshape=None):
         """Load the dataset data from the directory.
 
         If two directories are passed the second is interpreted as the test dataset. If only one dataset gets passed,
@@ -172,7 +173,7 @@ class CSVAccelerationDataset(AccelerationDataset):
 
             train, test = examples.split(self.TRAIN_RATIO)
         
-        super(CSVAccelerationDataset, self).__init__(train, test, add_generated_examples)
+        super(CSVAccelerationDataset, self).__init__(train, test, add_generated_examples, lshape=lshape)
     
     def load_examples(self, path, label_mapper):
         """
