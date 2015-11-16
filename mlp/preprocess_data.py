@@ -48,6 +48,41 @@ def write_dataset_to_csv(dataset, output_directory):
         write_to_csv(final_path, csv_data)
 
 
+def load_examples(self, path, label_mapper):
+    """
+    Load examples contained in the path into an example collection. Examples need to be stored in CSVs.
+
+    The label_mapper allows to map a loaded label to a different label, e.g. to combine multiple labels into one.
+
+    Arguments:
+
+    :param path: can be directory or zipfile. If zipfile, it will be extracted to a temporary path with prefix ``/tmp/muvr-training-``
+    :param label_mapper: the mapper
+    :return:
+    """
+    self.label_id_mapping = {}
+    root_directory = ""
+    if os.path.isdir(path):
+        root_directory = path
+    else:
+        # Zip file - extract to temp root_directory first
+        root_directory = tempfile.mkdtemp(prefix="/tmp/muvr-training-")
+        zipfile.ZipFile(path, 'r').extractall(root_directory)
+
+    #csv_files = filter(lambda f: f.endswith("csv"), os.listdir(root_directory))
+    csv_files = self.read_all_csv(root_directory)
+
+    xs = []
+    ys = []
+    for f in csv_files:
+        for label, x in self.load_example(f, label_mapper):
+            if label not in self.label_id_mapping:
+                self.label_id_mapping[label] = len(self.label_id_mapping)
+            xs.append(x)
+            ys.append(self.label_id_mapping[label])
+
+    return ExampleColl(xs, ys)
+
 def load_data(path, label_mapper):
     """ Load all csv files with converting label
         Return list of object ExampleColl, each has the same label
@@ -82,6 +117,8 @@ def main(dataset_directory, output_directory, ratio, is_slacking):
 
     # 1/ Load the dataset
     dataset = load_data(dataset_directory, map_label)
+
+    # 2/ Split the dataset in each label
     training = []
     test = []
     for label_data in dataset:
@@ -96,11 +133,13 @@ def main(dataset_directory, output_directory, ratio, is_slacking):
         training.append(first)
         test.append(second)
 
+    # 3/ Combine all result to one big dataset
     train_dataset = ExampleColl.concat(training)
     test_dataset = ExampleColl.concat(test)
     train_dataset.print_statistic("training dataset")
     test_dataset.print_statistic("testing dataset")
 
+    # 4/ Write train/test dataset to new csv
     write_dataset_to_csv(train_dataset, os.path.join(output_directory, "train"))
     write_dataset_to_csv(test_dataset, os.path.join(output_directory, "test"))
 
