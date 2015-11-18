@@ -1,6 +1,6 @@
 from neon.initializers import Uniform, Constant
 from neon.layers import Affine, Dropout, GeneralizedCost, Linear
-from neon.transforms import Rectlin, Logistic
+from neon.transforms import Rectlin, Logistic, Tanh
 from neon.models import Model
 
 class DefaultModel(object):
@@ -17,7 +17,7 @@ class DefaultModel(object):
             nout=500,
             init=init_norm,
             bias=bias_init,
-            activation=Rectlin()))
+            activation=Tanh()))
 
         layers.append(Dropout(
             name="do_1",
@@ -27,7 +27,7 @@ class DefaultModel(object):
             nout=100,
             init=init_norm,
             bias=bias_init,
-            activation=Rectlin()))
+            activation=Tanh()))
 
         layers.append(Dropout(
             name="do_2",
@@ -37,7 +37,7 @@ class DefaultModel(object):
             nout=25,
             init=init_norm,
             bias=bias_init,
-            activation=Rectlin()))
+            activation=Tanh()))
 
         layers.append(Dropout(
             name="do_3",

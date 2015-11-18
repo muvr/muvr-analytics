@@ -16,9 +16,13 @@ mapping_exercise = {
 
 NO_EXERCISE_LABEL = "no_exercise"
 
+non_exercise = ["", "sit", "walk"]
+
+ignore_exercise = ["shoulder press", "hiit running machine", "chest press"]
+
 def map_label(input):
     """Uniform the label"""
-    if input == "":
+    if input in non_exercise:
         return NO_EXERCISE_LABEL
     else:
         format_input = input.strip().lower()
@@ -127,6 +131,10 @@ def main(dataset_directory, output_directory, ratio, is_slacking):
             label_data.reset_all_labels("exercise")
         elif not is_slacking and label_data.labels[0] == NO_EXERCISE_LABEL:
             # training for exercise model, remove dataset with non-exercise label
+            continue
+
+        if label_data.labels[0] in ignore_exercise:
+            print "Ignore this exercise:", label_data.labels[0]
             continue
 
         first, second = label_data.split(ratio/100.0)
