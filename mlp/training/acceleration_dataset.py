@@ -19,7 +19,7 @@ class AccelerationDataset(object):
     # This defines the range of the values the accelerometer measures
     Feature_Range = 4.0
     Feature_Mean = 0
-    
+
     Target_Feature_Length = 400
 
     def human_label_for(self, label_id):
@@ -38,22 +38,22 @@ class AccelerationDataset(object):
 
     def generate_examples(self, examples):
         return examples
-    
+
     def prepare_dataset(self, dataset, add_generated_examples):
         self.logger.info("Loading DS from files...")
-    
+
         dataset = self.generate_examples(dataset) if add_generated_examples else dataset
-    
+
         augmented = self.augmenter.augment_examples(dataset, self.Target_Feature_Length)
         self.logger.info("Augmented with %d examples, %d originally" % (
             augmented.num_examples - dataset.num_examples, dataset.num_examples))
-        
+
         if augmented.num_examples > 0:
             augmented.shuffle()
             augmented.scale_features(self.Feature_Range, self.Feature_Mean)
-        
+
         return augmented
-    
+
     # Load label mapping and train / test data from disk.
     def __init__(self, train_examples, test_examples=None, add_generated_examples=True):
         """Initialize the dataset using the provided train and test examples."""
@@ -132,14 +132,14 @@ class SparkAccelerationDataset(AccelerationDataset):
                     x_buffer = []
                 x_buffer.append([row["x"], row["y"], row["z"]])
                 last_label = label
-            
+
             if len(x_buffer) > 0:
                 x = np.transpose(np.reshape(np.asarray(x_buffer, dtype=float), (len(x_buffer), len(x_buffer[0]))))
                 if label_mapper(last_label):
                     single_examples.append((label_mapper(last_label), x))
 
             return single_examples
-        
+
         xs = []
         ys = []
         for example in examples:
@@ -158,9 +158,10 @@ class CSVAccelerationDataset(AccelerationDataset):
         If two directories are passed the second is interpreted as the test dataset. If only one dataset gets passed,
          this dataset will get split into test and train. The label_mapper`allows to modify loaded labels. This is
          useful e.g. to map multiple labels to a single on ("arms/biceps-curl" --> "-/exercising", ...)."""
-        
+
         # If we get provided with a test directory, we are going to use that. Otherwise we will split the dataset in
         # test and train on our own.
+        self.label_id_mapping = {}
         if test_directory:
             train = self.load_examples(directory, label_mapper)
             test = self.load_examples(test_directory, label_mapper)
@@ -169,9 +170,9 @@ class CSVAccelerationDataset(AccelerationDataset):
             examples.shuffle()
 
             train, test = examples.split(self.TRAIN_RATIO)
-        
+
         super(CSVAccelerationDataset, self).__init__(train, test, add_generated_examples)
-    
+
     def load_examples(self, path, label_mapper):
         """
         Load examples contained in the path into an example collection. Examples need to be stored in CSVs.
@@ -184,7 +185,6 @@ class CSVAccelerationDataset(AccelerationDataset):
         :param label_mapper: the mapper
         :return:
         """
-        self.label_id_mapping = {}
         root_directory = ""
         if os.path.isdir(path):
             root_directory = path
@@ -218,7 +218,7 @@ class CSVAccelerationDataset(AccelerationDataset):
         """Load a single example from a CSV file.
         Return a dictionary object with key is label, value is the list of data with that label"""
         single_examples = []
-        
+
         with open(filename, 'rb') as csvfile:
             dialect = csv.Sniffer().sniff(csvfile.read(1024))
             csvfile.seek(0)
