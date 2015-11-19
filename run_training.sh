@@ -10,8 +10,9 @@ TEST_FOLDER=
 OUTPUT="output"
 MODEL_NAME="demo"
 IS_ANALYSIS=
+EPOCH=10
 
-while getopts "hd:o:t:m:a" OPTION
+while getopts "hd:o:t:m:l:a" OPTION
 do
      case $OPTION in
          a)
@@ -33,6 +34,9 @@ do
          m)
              MODEL_NAME=$OPTARG
              ;;
+         l)
+            EPOCH=$OPTARG
+            ;;
          ?)
              echo "Unsupported arguments"
              exit
@@ -54,14 +58,14 @@ printf "\n\nSTART TRAINING & EVALUATION with parameter:\n\tDataset: %s\n\tTest: 
 
 if ! [ -z $IS_ANALYSIS ]
 then
-    python mlp/start_training.py -d $DATASET -o $OUTPUT -e $EVAL -v $VISUAL -m $MODEL_NAME -analysis | tee $LOG_FILE
+    python mlp/start_training.py -d $DATASET -o $OUTPUT -e $EVAL -v $VISUAL -m $MODEL_NAME -loop $EPOCH -analysis | tee $LOG_FILE
 else
     remove_output
     if [ -z $TEST_FOLDER ]
     then
-        python mlp/start_training.py -d $DATASET -o $OUTPUT -e $EVAL -v $VISUAL -m $MODEL_NAME | tee $LOG_FILE
+        python mlp/start_training.py -d $DATASET -o $OUTPUT -e $EVAL -v $VISUAL -m $MODEL_NAME -loop $EPOCH | tee $LOG_FILE
     else
-        python mlp/start_training.py -d $DATASET -o $OUTPUT -e $EVAL -v $VISUAL -t $TEST_FOLDER -m $MODEL_NAME | tee $LOG_FILE
+        python mlp/start_training.py -d $DATASET -o $OUTPUT -e $EVAL -v $VISUAL -t $TEST_FOLDER -m $MODEL_NAME -loop $EPOCH | tee $LOG_FILE
     fi
     EXIT_CODE=$?
     if [[ $EXIT_CODE != 0 ]]

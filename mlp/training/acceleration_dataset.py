@@ -249,7 +249,7 @@ class CSVAccelerationDataset(AccelerationDataset):
                     x_buffer.append(new_data)
                     last_label = label
                 else:
-                    raise Exception("Bad format")
+                    raise Exception("Bad format with file: " + filename)
 
             if len(x_buffer) > 0:
                 x = np.transpose(np.reshape(np.asarray(x_buffer, dtype=float), (len(x_buffer), len(x_buffer[0]))))

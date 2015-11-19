@@ -14,13 +14,43 @@ class DefaultModel(object):
         layers = []
 
         layers.append(Affine(
-            nout=500,
+            nout=300,
             init=init_norm,
             bias=bias_init,
             activation=Tanh()))
 
         layers.append(Dropout(
             name="do_1",
+            keep = 0.9))
+
+        layers.append(Affine(
+            nout=150,
+            init=init_norm,
+            bias=bias_init,
+            activation=Tanh()))
+
+        layers.append(Dropout(
+            name="do_4",
+            keep = 0.9))
+
+        layers.append(Affine(
+            nout=150,
+            init=init_norm,
+            bias=bias_init,
+            activation=Tanh()))
+
+        layers.append(Dropout(
+            name="do_5",
+            keep = 0.9))
+
+        layers.append(Affine(
+            nout=100,
+            init=init_norm,
+            bias=bias_init,
+            activation=Tanh()))
+
+        layers.append(Dropout(
+            name="do_6",
             keep = 0.9))
 
         layers.append(Affine(
