@@ -39,7 +39,7 @@ object ExerciseCNN extends App {
     .constrainGradientToUnitNorm(true)
     .list(3)
     .layer(0, new DenseLayer.Builder().nIn(1200).nOut(500)
-      .activation("tanh")
+      .activation("relu")
       .weightInit(WeightInit.XAVIER)
       .build())
     .layer(1, new DenseLayer.Builder().nIn(500).nOut(200)
