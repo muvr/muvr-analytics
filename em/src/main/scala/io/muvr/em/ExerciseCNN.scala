@@ -2,14 +2,12 @@ package io.muvr.em
 
 import io.muvr.em.dataset.SyntheticExerciseDataSetLoader
 import org.deeplearning4j.eval.Evaluation
-import org.deeplearning4j.nn.api.OptimizationAlgorithm
 import org.deeplearning4j.nn.conf.NeuralNetConfiguration
-import org.deeplearning4j.nn.conf.layers.setup.ConvolutionLayerSetup
-import org.deeplearning4j.nn.conf.layers.{ConvolutionLayer, OutputLayer, SubsamplingLayer}
+import org.deeplearning4j.nn.conf.layers.{DenseLayer, OutputLayer}
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.deeplearning4j.nn.weights.WeightInit
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener
-import org.nd4j.linalg.lossfunctions.LossFunctions
+import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction
 
 object ExerciseCNN extends App {
 
@@ -19,43 +17,67 @@ object ExerciseCNN extends App {
 
   val nChannels = 1
 
-  val (examples, labels) = new SyntheticExerciseDataSetLoader(10, numExamples = 1000).train
+  val (examples, labels) = new SyntheticExerciseDataSetLoader(10, numExamples = 10000).train
 
   val builder = new NeuralNetConfiguration.Builder()
     .seed(seed)
-    .batchSize(batchSize)
     .iterations(iterations)
+    .learningRate(1e-3)
+    .l1(0.3).regularization(true).l2(1e-3)
     .constrainGradientToUnitNorm(true)
-    .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
     .list(3)
-    .layer(0, new ConvolutionLayer.Builder(3, 200)
-      .stride(2,2)
-      .nIn(nChannels)
-      .nOut(6)
+    .layer(0, new DenseLayer.Builder().nIn(1200).nOut(500)
+      .activation("tanh")
       .weightInit(WeightInit.XAVIER)
-      .activation("relu")
       .build())
-    .layer(1, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX, Array(1, 2))
+    .layer(1, new DenseLayer.Builder().nIn(500).nOut(200)
+      .activation("tanh")
+      .weightInit(WeightInit.XAVIER)
       .build())
-    .layer(2, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD)
-      .nOut(labels.columns())
+    .layer(2, new OutputLayer.Builder(LossFunction.MCXENT)
       .weightInit(WeightInit.XAVIER)
       .activation("softmax")
-      .build())
+      .nIn(200).nOut(labels.columns()).build())
     .backprop(true)
     .pretrain(false)
 
-  new ConvolutionLayerSetup(builder, 3, 400, nChannels)
+  /*
+  .seed(seed)
+  .batchSize(batchSize)
+  .iterations(iterations)
+  .constrainGradientToUnitNorm(true)
+  .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
+  .list(3)
+  .layer(0, new ConvolutionLayer.Builder(3, 200)
+    .stride(2,2)
+    .nIn(nChannels)
+    .nOut(6)
+    .weightInit(WeightInit.XAVIER)
+    .activation("relu")
+    .build())
+  .layer(1, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX, Array(1, 2))
+    .build())
+  .layer(2, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD)
+    .nOut(labels.columns())
+    .weightInit(WeightInit.XAVIER)
+    .activation("softmax")
+    .build())
+  .backprop(true)
+  .pretrain(false)
+  */
+
+  //new ConvolutionLayerSetup(builder, 3, 400, nChannels)
   val model = new MultiLayerNetwork(builder.build)
   model.init()
   model.setListeners(new ScoreIterationListener(1))
-  
+
   model.fit(examples, labels)
   val eval = new Evaluation(labels.columns())
   (0 until examples.rows()).foreach { row =>
     val example = examples.getRow(row)
     val label = labels.getRow(row)
-    println(s"Predicted ${model.predict(example)}, expected $label")
+
+    println(s"Predicted ${model.output(example)}, expected $label")
   }
 
 }

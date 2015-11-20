@@ -16,13 +16,18 @@ trait ExerciseDataSetLoader {
 class SyntheticExerciseDataSetLoader(numClasses: Int, numExamples: Int) extends ExerciseDataSetLoader {
 
   override lazy val train: ExamplesAndLabels = {
-    val exampleDimension = 3 * 400
+    val exampleSamples = 400
+    val exampleDimensions = 3
 
-    val examples = new NDArray(numExamples, exampleDimension)
+    val examples = new NDArray(numExamples, exampleSamples * exampleDimensions)
     val labels = new NDArray(numExamples, numClasses)
     (0 until numExamples).foreach { row =>
       val clazz = row % numClasses
-      val example = new NDArray(Array.fill[Float](exampleDimension)(clazz))
+      val exampleValues = (0 until exampleSamples).flatMap { pos =>
+        val v = math.sin(clazz * pos / exampleSamples.toDouble).toFloat
+        Array(v, v, v)
+      }
+      val example = new NDArray(exampleValues.toArray)
       val label = new NDArray((0 until numClasses).map { c => if (c == clazz) 1.toFloat else 0.toFloat }.toArray)
 
       labels.putRow(row, label)
