@@ -85,12 +85,15 @@ object ExerciseCNN extends App {
 
   model.fit(examples, labels)
   val eval = new Evaluation(labels.columns())
-  (0 until examples.rows()).foreach { row =>
-    val example = examples.getRow(row)
-    val expected = labels.getRow(row).maxf
-    val predicted = model.output(example).maxf
+  val z: (Int, Int) = (0, 0)
 
-    println(s"Predicted $predicted, expected $expected")
+  val (s, f) = (0 until examples.rows()).foldLeft(z) {
+    case ((succeeded, failed), row) =>
+      val example = examples.getRow(row)
+      val (ei, _) = labels.getRow(row).maxf
+      val (pi, _) = model.output(example).maxf
+      if (ei == pi) (succeeded + 1, failed) else (succeeded, failed + 1)
   }
+  println(s"Succeeded $s, failed $f")
 
 }
