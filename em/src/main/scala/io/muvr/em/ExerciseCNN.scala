@@ -7,9 +7,21 @@ import org.deeplearning4j.nn.conf.layers.{DenseLayer, OutputLayer}
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.deeplearning4j.nn.weights.WeightInit
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener
+import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction
 
+
 object ExerciseCNN extends App {
+  implicit class INDArrayOps(x: INDArray) {
+    def maxf: (Int, Float) = {
+      val zero: (Int, Float) = (0, 0)
+      (0 until x.columns()).foldLeft(zero) {
+        case ((i, v), column) =>
+          val cv = x.getFloat(column)
+          if (cv > v) (column, cv) else (i, v)
+      }
+    }
+  }
 
   val seed = 666
   val batchSize = 500
@@ -75,9 +87,10 @@ object ExerciseCNN extends App {
   val eval = new Evaluation(labels.columns())
   (0 until examples.rows()).foreach { row =>
     val example = examples.getRow(row)
-    val label = labels.getRow(row)
+    val expected = labels.getRow(row).maxf
+    val predicted = model.output(example).maxf
 
-    println(s"Predicted ${model.output(example)}, expected $label")
+    println(s"Predicted $predicted, expected $expected")
   }
 
 }
