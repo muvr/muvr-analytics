@@ -40,7 +40,7 @@ object ExerciseCNN extends App {
     .list(3)
     .layer(0, new DenseLayer.Builder().nIn(1200).nOut(500)
       .activation("relu")
-      .weightInit(WeightInit.XAVIER)
+      .weightInit(WeightInit.RELU)
       .build())
     .layer(1, new DenseLayer.Builder().nIn(500).nOut(200)
       .activation("tanh")

@@ -24,8 +24,8 @@ class SyntheticExerciseDataSetLoader(numClasses: Int, numExamples: Int) extends 
     (0 until numExamples).foreach { row =>
       val clazz = row % numClasses
       val exampleValues = (0 until exampleSamples).flatMap { pos =>
-        val v = math.sin(clazz * pos / exampleSamples.toDouble).toFloat
-        Array(v, v, v)
+        val v = math.sin(clazz * pos / exampleSamples.toDouble) + (math.random * 0.1)
+        Array(v.toFloat, v.toFloat, v.toFloat)
       }
       val example = new NDArray(exampleValues.toArray)
       val label = new NDArray((0 until numClasses).map { c => if (c == clazz) 1.toFloat else 0.toFloat }.toArray)
