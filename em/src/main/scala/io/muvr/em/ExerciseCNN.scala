@@ -20,7 +20,7 @@ object ExerciseCNN extends App {
 
 //  val dataset = new SyntheticExerciseDataSetLoader(10, numExamples = 50000)
   val dataset = new CuratedExerciseDataSetLoader(
-    trainDirectory = new File("/Users/janmachacek/Tmp/labelled/x"),
+    trainDirectory = new File("/Users/janmachacek/Tmp/labelled/core"),
     multiplier = 10)
 
   val (examples, labels) = dataset.train
