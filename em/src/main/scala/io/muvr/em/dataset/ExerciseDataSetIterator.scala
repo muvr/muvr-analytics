@@ -1,7 +1,11 @@
 package io.muvr.em.dataset
 
+import java.io.File
+
 import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.cpu.NDArray
+
+import scala.io.Source
 
 trait ExerciseDataSetLoader {
 
@@ -38,5 +42,60 @@ class SyntheticExerciseDataSetLoader(numClasses: Int, numExamples: Int) extends 
   }
 
   override lazy val test: ExamplesAndLabels = train
+
+}
+
+class CuratedExerciseDataSetLoader(trainDirectory: File, testDirectory: Option[File] = None,
+                                  multiplier: Int = 1) extends ExerciseDataSetLoader {
+
+  private def loadFilesInDirectory(directory: File): ExamplesAndLabels = {
+    val windowSize = 400
+    val windowStep = 50
+    val windowDimension = 3
+    val norm: Float = 2
+
+    val filesAndLabels = directory.listFiles().toList.map { file ⇒
+      // each file contains potentially more than one label
+      Source.fromFile(file).getLines().toList.flatMap { line ⇒
+        line.split(",") match {
+          case Array(x, y, z, label, _, _, _) ⇒
+            def ccn(s: String): Float = {
+              val x = s.toFloat / norm
+              if (x > 1) 1 else if (x < -1) -1 else x
+            }
+            Some(label → Array(ccn(x), ccn(y), ccn(z)))
+          case _ ⇒
+            None
+        }
+      }.groupBy(_._1).mapValues(_.map(_._2))
+    }
+
+    val labels = filesAndLabels.flatMap(_.keys).distinct
+    val examplesAndLabelVectors = filesAndLabels.flatMap(_.toList.flatMap {
+      case (label, samples) ⇒
+        val labelIndex = labels.indexOf(label)
+        val labelVector = new NDArray((0 until labels.size).map { l ⇒ if (l == labelIndex) 1.toFloat else 0.toFloat }.toArray)
+        samples.sliding(windowSize, windowStep).flatMap { window ⇒
+          if (window.size == windowSize) {
+            (0 until multiplier).map { i ⇒
+              labelVector → new NDArray(window.flatten.toArray)
+            }
+          } else Nil
+        }
+    })
+    val examplesMatrix = new NDArray(examplesAndLabelVectors.size, windowSize * windowDimension)
+    val labelsMatrix = new NDArray(examplesAndLabelVectors.size, labels.size)
+    examplesAndLabelVectors.zipWithIndex.foreach {
+      case ((label, example), i) ⇒
+        examplesMatrix.putRow(i, example)
+        labelsMatrix.putRow(i, label)
+    }
+
+    (examplesMatrix, labelsMatrix)
+  }
+
+  override def train: ExamplesAndLabels = loadFilesInDirectory(trainDirectory)
+
+  override def test: ExamplesAndLabels = ???
 
 }
