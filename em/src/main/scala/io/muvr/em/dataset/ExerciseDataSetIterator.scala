@@ -9,7 +9,7 @@ import scala.io.Source
 
 trait ExerciseDataSetLoader {
 
-  type ExamplesAndLabels = (INDArray, INDArray)
+  type ExamplesAndLabels = (INDArray, INDArray, List[String])
 
   def train: ExamplesAndLabels
 
@@ -38,7 +38,7 @@ class SyntheticExerciseDataSetLoader(numClasses: Int, numExamples: Int) extends 
       examples.putRow(row, example)
     }
 
-    (examples, labels)
+    (examples, labels, (0 until labels.rows()).map(_.toString).toList)
   }
 
   override lazy val test: ExamplesAndLabels = train
@@ -92,7 +92,7 @@ class CuratedExerciseDataSetLoader(trainDirectory: File, testDirectory: Option[F
         labelsMatrix.putRow(i, label)
     }
 
-    (examplesMatrix, labelsMatrix)
+    (examplesMatrix, labelsMatrix, labels)
   }
 
   override def train: ExamplesAndLabels = loadFilesInDirectory(trainDirectory)

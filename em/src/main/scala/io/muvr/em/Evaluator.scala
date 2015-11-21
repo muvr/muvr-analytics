@@ -11,7 +11,7 @@ object Evaluator extends App {
     multiplier = 10)
 
   println("Loading dataset...")
-  val (examples, labels) = dataset.train
+  val (examplesMatrix, labelsMatrix, labelNames) = dataset.train
 
   println("Loading model...")
   val ois = new ObjectInputStream(new FileInputStream("/Users/janmachacek/Tmp/model.ser"))
@@ -19,6 +19,6 @@ object Evaluator extends App {
   ois.close()
 
   println("Evaluating...")
-  val (s, f) = Evaluation.evaluate(model, examples, labels)
+  val (s, f) = Evaluation.evaluate(model, examplesMatrix, labelsMatrix)
   println(s"Succeeded $s, failed $f")
 }
