@@ -3,7 +3,7 @@ package io.muvr.em
 import java.io.File
 
 import io.muvr.em.dataset.{CuratedExerciseDataSetLoader, SyntheticExerciseDataSetLoader}
-import io.muvr.em.net.MLP
+import io.muvr.em.net.{DBN, MLP}
 import org.nd4j.linalg.api.ndarray.INDArray
 
 object ExerciseCNN extends App {
@@ -21,7 +21,7 @@ object ExerciseCNN extends App {
 //  val dataset = new SyntheticExerciseDataSetLoader(10, numExamples = 50000)
   val dataset = new CuratedExerciseDataSetLoader(
     trainDirectory = new File("/Users/janmachacek/Tmp/labelled/x"),
-    multiplier = 20)
+    multiplier = 10)
 
   val (examples, labels) = dataset.train
 

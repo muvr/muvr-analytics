@@ -71,14 +71,15 @@ class CuratedExerciseDataSetLoader(trainDirectory: File, testDirectory: Option[F
     }
 
     val labels = filesAndLabels.flatMap(_.keys).distinct
-    val examplesAndLabelVectors = filesAndLabels.flatMap(_.toList.flatMap {
+    val examplesAndLabelVectors = filesAndLabels.par.flatMap(_.toList.flatMap {
       case (label, samples) ⇒
         val labelIndex = labels.indexOf(label)
-        val labelVector = new NDArray((0 until labels.size).map { l ⇒ if (l == labelIndex) 1.toFloat else 0.toFloat }.toArray)
+        val labelVector = new NDArray(labels.indices.map { l ⇒ if (l == labelIndex) 1.toFloat else 0.toFloat }.toArray)
         samples.sliding(windowSize, windowStep).flatMap { window ⇒
           if (window.size == windowSize) {
             (0 until multiplier).map { i ⇒
-              labelVector → new NDArray(window.flatten.toArray)
+              val samples = window.flatten.map { v ⇒ if (i == 0) v else v + (math.random * 0.1).toFloat }
+              labelVector → new NDArray(samples.toArray)
             }
           } else Nil
         }

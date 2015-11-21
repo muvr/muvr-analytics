@@ -1,11 +1,13 @@
 package io.muvr.em.net
 
+import org.deeplearning4j.nn.api.OptimizationAlgorithm
 import org.deeplearning4j.nn.conf.NeuralNetConfiguration
+import org.deeplearning4j.nn.conf.distribution.UniformDistribution
 import org.deeplearning4j.nn.conf.layers.{DenseLayer, OutputLayer}
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.deeplearning4j.nn.weights.WeightInit
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener
-import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction
+import org.nd4j.linalg.lossfunctions.LossFunctions
 
 class MLP {
 
@@ -16,24 +18,53 @@ class MLP {
     val conf = new NeuralNetConfiguration.Builder()
       .seed(seed)
       .iterations(iterations)
-      .learningRate(1e-3)
-      .l1(0.3).regularization(true).l2(1e-3)
+      .optimizationAlgo(OptimizationAlgorithm.LINE_GRADIENT_DESCENT)
       .constrainGradientToUnitNorm(true)
-      .list(3)
-      .layer(0, new DenseLayer.Builder().nIn(numInputs).nOut(500)
-        .activation("relu")
-        .weightInit(WeightInit.RELU)
+      .learningRate(1e-3f) // TODO create learnable lr that shrinks by multiplicative constant after each epoch pg 3
+      .momentum(0)
+      .list(6)
+      .layer(0, new DenseLayer.Builder()
+        .nIn(numInputs)
+        .nOut(2500)
+        .activation("tanh") // TODO set A = 1.7159 and B = 0.6666
+        .weightInit(WeightInit.DISTRIBUTION)
+        .dist(new UniformDistribution(-0.5, 0.5))
         .build())
-      .layer(1, new DenseLayer.Builder().nIn(500).nOut(200)
+      .layer(1, new DenseLayer.Builder()
+        .nIn(2500)
+        .nOut(2000)
         .activation("tanh")
-        .weightInit(WeightInit.XAVIER)
+        .weightInit(WeightInit.DISTRIBUTION)
+        .dist(new UniformDistribution(-0.5, 0.5))
         .build())
-      .layer(2, new OutputLayer.Builder(LossFunction.MCXENT)
-        .weightInit(WeightInit.XAVIER)
-        .activation("softmax")
-        .nIn(200).nOut(numOutputs).build())
-      .backprop(true)
-      .pretrain(false)
+      .layer(2, new DenseLayer.Builder()
+        .nIn(2000)
+        .nOut(1500)
+        .activation("tanh")
+        .weightInit(WeightInit.DISTRIBUTION)
+        .dist(new UniformDistribution(-0.5, 0.5))
+        .build())
+      .layer(3, new DenseLayer.Builder()
+        .nIn(1500)
+        .nOut(1000)
+        .activation("tanh")
+        .weightInit(WeightInit.DISTRIBUTION)
+        .dist(new UniformDistribution(-0.5, 0.5))
+        .build())
+      .layer(4, new DenseLayer.Builder()
+        .nIn(1000)
+        .nOut(500)
+        .activation("tanh")
+        .weightInit(WeightInit.DISTRIBUTION)
+        .dist(new UniformDistribution(-0.5, 0.5))
+        .build())
+      .layer(5, new OutputLayer.Builder(LossFunctions.LossFunction.SQUARED_LOSS)
+        .nIn(500)
+        .nOut(numOutputs)
+        .weightInit(WeightInit.DISTRIBUTION)
+        .dist(new UniformDistribution(-0.5, 0.5))
+        .build())
+      .backprop(true).pretrain(false)
       .build()
 
     val model = new MultiLayerNetwork(conf)
