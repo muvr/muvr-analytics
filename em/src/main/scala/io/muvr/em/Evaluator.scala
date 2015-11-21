@@ -2,21 +2,28 @@ package io.muvr.em
 
 import java.io._
 
-import io.muvr.em.dataset.CuratedExerciseDataSetLoader
+import io.muvr.em.dataset.CuratedExerciseDataSet
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 
+import scala.io.Source
+
 object Evaluator extends App {
-  val dataset = new CuratedExerciseDataSetLoader(
-    trainDirectory = new File("/Users/janmachacek/Muvr/muvr-open-training-data/test/core"),
+  val rootDirectory = "/Users/janmachacek/Muvr/muvr-open-training-data"
+  val datasetName = "core"
+
+  val dataset = new CuratedExerciseDataSet(
+    directory = new File(s"$rootDirectory/test/$datasetName"),
     multiplier = 10)
 
   println("Loading dataset...")
-  val (examplesMatrix, labelsMatrix, labelNames) = dataset.train
+  val (examplesMatrix, labelsMatrix, _) = dataset.labelsAndExamples
 
   println("Loading model...")
-  val ois = new ObjectInputStream(new FileInputStream("/Users/janmachacek/Tmp/model.ser"))
-  val model = ois.readObject().asInstanceOf[MultiLayerNetwork]
-  ois.close()
+  val modelInputStream = new ObjectInputStream(new FileInputStream(s"$rootDirectory/models/$datasetName.model"))
+  val model = modelInputStream.readObject().asInstanceOf[MultiLayerNetwork]
+  modelInputStream.close()
+
+  val labelNames = Source.fromInputStream(new FileInputStream(s"$rootDirectory/models/$datasetName.labels")).getLines().toList
 
   println("Evaluating...")
   val (s, f) = Evaluation.evaluate(model, examplesMatrix, labelsMatrix)

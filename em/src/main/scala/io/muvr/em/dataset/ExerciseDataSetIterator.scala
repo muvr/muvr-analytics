@@ -11,15 +11,13 @@ trait ExerciseDataSetLoader {
 
   type ExamplesAndLabels = (INDArray, INDArray, List[String])
 
-  def train: ExamplesAndLabels
-
-  def test: ExamplesAndLabels
+  def labelsAndExamples: ExamplesAndLabels
 
 }
 
-class SyntheticExerciseDataSetLoader(numClasses: Int, numExamples: Int) extends ExerciseDataSetLoader {
+class SyntheticExerciseDataSet(numClasses: Int, numExamples: Int) extends ExerciseDataSetLoader {
 
-  override lazy val train: ExamplesAndLabels = {
+  override lazy val labelsAndExamples: ExamplesAndLabels = {
     val exampleSamples = 400
     val exampleDimensions = 3
 
@@ -41,12 +39,9 @@ class SyntheticExerciseDataSetLoader(numClasses: Int, numExamples: Int) extends 
     (examples, labels, (0 until labels.rows()).map(_.toString).toList)
   }
 
-  override lazy val test: ExamplesAndLabels = train
-
 }
 
-class CuratedExerciseDataSetLoader(trainDirectory: File, testDirectory: Option[File] = None,
-                                  multiplier: Int = 1) extends ExerciseDataSetLoader {
+class CuratedExerciseDataSet(directory: File, multiplier: Int = 1) extends ExerciseDataSetLoader {
 
   private def loadFilesInDirectory(directory: File): ExamplesAndLabels = {
     val windowSize = 400
@@ -95,8 +90,6 @@ class CuratedExerciseDataSetLoader(trainDirectory: File, testDirectory: Option[F
     (examplesMatrix, labelsMatrix, labels)
   }
 
-  override def train: ExamplesAndLabels = loadFilesInDirectory(trainDirectory)
-
-  override def test: ExamplesAndLabels = ???
+  override def labelsAndExamples: ExamplesAndLabels = loadFilesInDirectory(directory)
 
 }
