@@ -11,7 +11,7 @@ object Trainer extends App {
     trainDirectory = new File("/Users/janmachacek/Tmp/labelled/core"),
     multiplier = 10)
 
-  val (examples, labels) = dataset.train
+  val (examples, labels, _) = dataset.train
 
   // construct the "empty" model
   val model = new MLP().model(examples.columns(), labels.columns())
