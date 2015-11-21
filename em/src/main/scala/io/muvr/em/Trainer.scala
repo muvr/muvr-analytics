@@ -4,6 +4,7 @@ import java.io._
 
 import io.muvr.em.dataset.CuratedExerciseDataSet
 import io.muvr.em.net.MLP
+import org.nd4j.linalg.factory.Nd4j
 
 object Trainer extends App {
 
@@ -25,6 +26,11 @@ object Trainer extends App {
   val labelsOutputStream = new FileOutputStream(s"$rootDirectory/models/$datasetName.labels")
   labelsOutputStream.write(labelNames.mkString("\n").getBytes("UTF-8"))
   labelsOutputStream.close()
+
+  Nd4j.write(model.params(), new DataOutputStream(new FileOutputStream(s"$rootDirectory/models/$datasetName.params")))
+  val modelConfOutputStream = new FileOutputStream(s"$rootDirectory/models/$datasetName.conf")
+  modelConfOutputStream.write(model.conf().toYaml.getBytes("UTF-8"))
+  modelConfOutputStream.close()
 
   val modelOutputStream = new ObjectOutputStream(new FileOutputStream(s"$rootDirectory/models/$datasetName.model"))
   modelOutputStream.writeObject(model)
