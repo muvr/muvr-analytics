@@ -79,7 +79,7 @@ class AccelerationDataset(object):
     def flatten2d(npa):
         """Take a 3D array and flatten the last dimension."""
         if npa.shape[0] > 0:
-            return npa.reshape((npa.shape[0], -1))
+            return npa.transpose([0,2,1]).reshape((npa.shape[0], -1))
         else:
             return npa
 
@@ -193,15 +193,14 @@ class CSVAccelerationDataset(AccelerationDataset):
             root_directory = tempfile.mkdtemp(prefix="/tmp/muvr-training-")
             zipfile.ZipFile(path, 'r').extractall(root_directory)
 
-        #csv_files = filter(lambda f: f.endswith("csv"), os.listdir(root_directory))
         csv_files = []
-        def append_csv_file(arg, direname, names):
-            for name in names:
-                f = os.path.join(direname, name)
-                if os.path.isfile(f) and f.endswith("csv"):
-                    csv_files.append(f)
 
-        os.path.walk(root_directory, append_csv_file, None)
+        for root, _, files in os.walk(root_directory, followlinks=True):
+            for name in files:
+                f = os.path.join(root, name)
+                if os.path.isfile(f) and f.endswith("csv"):
+                    csv_files.append(f)  
+            
         xs = []
         ys = []
         for f in csv_files:
