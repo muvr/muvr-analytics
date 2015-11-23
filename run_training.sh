@@ -21,14 +21,14 @@ EVAL="$OUTPUT/evaluation.csv"
 rm -f $VISUAL
 rm -f $EVAL
 
-python mlp/start_training.py -h
+python python-analytics/start_training.py -h
 printf "\n\nSTART TRAINING & EVALUATION\n\n"
 
 if [ -z "$3" ]
 then
-    python mlp/start_training.py -d $DATASET -o $OUTPUT -e $EVAL -v $VISUAL
+    python python-analytics/start_training.py -d $DATASET -o $OUTPUT -e $EVAL -v $VISUAL
 else
-    python mlp/start_training.py -d $DATASET -o $OUTPUT -e $EVAL -v $VISUAL -t $3
+    python python-analytics/start_training.py -d $DATASET -o $OUTPUT -e $EVAL -v $VISUAL -t $3
 fi
 EXIT_CODE=$?
 if [[ $EXIT_CODE != 0 ]]

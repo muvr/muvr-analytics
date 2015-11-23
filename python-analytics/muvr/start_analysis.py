@@ -3,8 +3,8 @@ from pyspark import SparkContext, SparkConf
 from pyspark_cassandra import CassandraSparkContext
 import os
 from converters import neon2iosmlp
-from training.acceleration_dataset import SparkAccelerationDataset
-from training.mlp_model import MLPMeasurementModelTrainer
+from muvr.dataset.acceleration_dataset import SparkAccelerationDataset
+from muvr.training.mlp_model import MLPMeasurementModelTrainer
 from itertools import groupby
 from operator import attrgetter
 import uuid

@@ -6,8 +6,8 @@ import os
 import csv
 import zipfile
 import tempfile
-from training.augmentation import SignalAugmenter
-from training.examples import ExampleColl
+from muvr.dataset.augmentation import SignalAugmenter
+from muvr.dataset.examples import ExampleColl
 
 
 class AccelerationDataset(object):
