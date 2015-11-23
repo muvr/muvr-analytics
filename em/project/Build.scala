@@ -30,7 +30,7 @@ object Dependency {
     val spark        = "1.5.2"
     val scalaTest    = "2.2.4"
     val scalaCheck   = "1.12.2"
-    val nd4j         = "0.4-rc3.6"
+    val nd4j         = "0.4-rc3.7"
     val dl4j         = "0.4-rc3.6"
     val canova       = "0.0.0.12"
   }
@@ -43,9 +43,7 @@ object Dependency {
 
   val dl4jCore       = "org.deeplearning4j" % "deeplearning4j-core" % versions.dl4j
   val nd4jX86        = "org.nd4j"           % "nd4j-x86"            % versions.nd4j
-  // NB. This is intentional. For now, we're using unmanaged lib
-  // val nd4jCuda       = "org.nd4j"           % "nd4j-jcublas-7.5"    % versions.nd4j
-  val jcublas        = "jcuda"              % "jcublas"         % "0.7.5"
+  val nd4jCuda       = "org.nd4j"           % "nd4j-jcublas-7.5"    % versions.nd4j
 
   val scalaTest      = "org.scalatest"     %% "scalatest"       % versions.scalaTest  % "test"
   val scalaCheck     = "org.scalacheck"    %% "scalacheck"      % versions.scalaCheck % "test"
@@ -54,9 +52,7 @@ object Dependency {
 object Dependencies {
   import Dependency._
 
-  val em =
-    Seq(sparkCore, sparkStreaming, sparkSQL, sparkHiveSQL, // sparkRepl,
-      scalaTest, scalaCheck, dl4jCore, nd4jX86, jcublas)
+  val em = Seq(dl4jCore, nd4jX86, nd4jCuda)
 }
 
 object EmBuild extends Build {
