@@ -13,6 +13,8 @@ trait ExerciseDataSetLoader {
 
   def labelsAndExamples: ExamplesAndLabels
 
+  def exerciseVsSlacking: ExamplesAndLabels
+
 }
 
 class SyntheticExerciseDataSet(numClasses: Int, numExamples: Int) extends ExerciseDataSetLoader {
@@ -39,11 +41,14 @@ class SyntheticExerciseDataSet(numClasses: Int, numExamples: Int) extends Exerci
     (examples, labels, (0 until labels.rows()).map(_.toString).toList)
   }
 
+  override def exerciseVsSlacking: (INDArray, INDArray, List[String]) = ???
 }
 
 class CuratedExerciseDataSet(directory: File, multiplier: Int = 1) extends ExerciseDataSetLoader {
 
-  private def loadFilesInDirectory(directory: File): ExamplesAndLabels = {
+  private def loadFilesInDirectory(directory: File,
+                                   includeEmptyLabels: Boolean)
+                                  (labelTransform: String ⇒ String): ExamplesAndLabels = {
     val windowSize = 400
     val windowStep = 50
     val windowDimension = 3
@@ -53,12 +58,12 @@ class CuratedExerciseDataSet(directory: File, multiplier: Int = 1) extends Exerc
       // each file contains potentially more than one label
       Source.fromFile(file).getLines().toList.flatMap { line ⇒
         line.split(",") match {
-          case Array(x, y, z, label, _, _, _) ⇒
+          case Array(x, y, z, label, _, _, _) if includeEmptyLabels || !label.isEmpty ⇒
             def ccn(s: String): Float = {
               val x = s.toFloat / norm
               if (x > 1) 1 else if (x < -1) -1 else x
             }
-            Some(label → Array(ccn(x), ccn(y), ccn(z)))
+            Some(labelTransform(label) → Array(ccn(x), ccn(y), ccn(z)))
           case _ ⇒
             None
         }
@@ -90,6 +95,9 @@ class CuratedExerciseDataSet(directory: File, multiplier: Int = 1) extends Exerc
     (examplesMatrix, labelsMatrix, labels)
   }
 
-  override def labelsAndExamples: ExamplesAndLabels = loadFilesInDirectory(directory)
+  override def labelsAndExamples: ExamplesAndLabels = loadFilesInDirectory(directory, includeEmptyLabels = false)(identity)
 
+  override def exerciseVsSlacking: ExamplesAndLabels = loadFilesInDirectory(directory, includeEmptyLabels = true) { l ⇒
+    if (l.isEmpty) "-" else "E"
+  }
 }
