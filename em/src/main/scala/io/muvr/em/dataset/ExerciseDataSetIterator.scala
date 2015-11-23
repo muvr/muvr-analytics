@@ -1,21 +1,29 @@
 package io.muvr.em.dataset
 
+import java.io.File
+
 import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.cpu.NDArray
 
-trait ExerciseDataSetLoader {
+import scala.io.Source
 
-  type ExamplesAndLabels = (INDArray, INDArray)
+object ExerciseDataSet {
+  type ExamplesAndLabels = (INDArray, INDArray, List[String])
+}
 
-  def train: ExamplesAndLabels
+trait ExerciseDataSet {
+  import ExerciseDataSet._
 
-  def test: ExamplesAndLabels
+  def labelsAndExamples: ExamplesAndLabels
+
+  def exerciseVsSlacking: ExamplesAndLabels
 
 }
 
-class SyntheticExerciseDataSetLoader(numClasses: Int, numExamples: Int) extends ExerciseDataSetLoader {
+class SyntheticExerciseDataSet(numClasses: Int, numExamples: Int) extends ExerciseDataSet {
+  import ExerciseDataSet._
 
-  override lazy val train: ExamplesAndLabels = {
+  override lazy val labelsAndExamples: ExamplesAndLabels = {
     val exampleSamples = 400
     val exampleDimensions = 3
 
@@ -34,9 +42,68 @@ class SyntheticExerciseDataSetLoader(numClasses: Int, numExamples: Int) extends 
       examples.putRow(row, example)
     }
 
-    (examples, labels)
+    (examples, labels, (0 until labels.rows()).map(_.toString).toList)
   }
 
-  override lazy val test: ExamplesAndLabels = train
+  override def exerciseVsSlacking: (INDArray, INDArray, List[String]) = ???
+}
 
+class CuratedExerciseDataSet(directory: File, multiplier: Int = 1) extends ExerciseDataSet {
+  import ExerciseDataSet._
+
+  private def loadFilesInDirectory(directory: File)
+                                  (labelTransform: String ⇒ Option[String]): ExamplesAndLabels = {
+    val windowSize = 400
+    val windowStep = 50
+    val windowDimension = 3
+    val norm: Float = 2
+
+    val filesAndLabels = directory.listFiles().toList.map { file ⇒
+      // each file contains potentially more than one label
+      Source.fromFile(file).getLines().toList.flatMap { line ⇒
+        line.split(",") match {
+          case Array(x, y, z, label, _, _, _) ⇒
+            def ccn(s: String): Float = {
+              val x = s.toFloat / norm
+              if (x > 1) 1 else if (x < -1) -1 else x
+            }
+            labelTransform(label).map(label ⇒ label → Array(ccn(x), ccn(y), ccn(z)))
+          case _ ⇒
+            None
+        }
+      }.groupBy(_._1).mapValues(_.map(_._2))
+    }
+
+    val labels = filesAndLabels.flatMap(_.keys).distinct
+    val examplesAndLabelVectors = filesAndLabels.par.flatMap(_.toList.flatMap {
+      case (label, samples) ⇒
+        val labelIndex = labels.indexOf(label)
+        val labelVector = new NDArray(labels.indices.map { l ⇒ if (l == labelIndex) 1.toFloat else 0.toFloat }.toArray)
+        samples.sliding(windowSize, windowStep).flatMap { window ⇒
+          if (window.size == windowSize) {
+            (0 until multiplier).map { i ⇒
+              val samples = window.flatten.map { v ⇒ if (i == 0) v else v + (math.random * 0.1).toFloat }
+              labelVector → new NDArray(samples.toArray)
+            }
+          } else Nil
+        }
+    })
+    val examplesMatrix = new NDArray(examplesAndLabelVectors.size, windowSize * windowDimension)
+    val labelsMatrix = new NDArray(examplesAndLabelVectors.size, labels.size)
+    examplesAndLabelVectors.zipWithIndex.foreach {
+      case ((label, example), i) ⇒
+        examplesMatrix.putRow(i, example)
+        labelsMatrix.putRow(i, label)
+    }
+
+    (examplesMatrix, labelsMatrix, labels)
+  }
+
+  override def labelsAndExamples: ExamplesAndLabels = loadFilesInDirectory(directory) { label ⇒
+    if (label.isEmpty) None else Some(label)
+  }
+
+  override def exerciseVsSlacking: ExamplesAndLabels = loadFilesInDirectory(directory) { label ⇒
+    if (label.isEmpty) Some("-") else Some("E")
+  }
 }
