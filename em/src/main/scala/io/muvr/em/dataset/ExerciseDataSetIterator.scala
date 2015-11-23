@@ -3,7 +3,7 @@ package io.muvr.em.dataset
 import java.io.File
 
 import org.nd4j.linalg.api.ndarray.INDArray
-import org.nd4j.linalg.cpu.NDArray
+import org.nd4j.linalg.factory._
 
 import scala.io.Source
 
@@ -27,16 +27,16 @@ class SyntheticExerciseDataSet(numClasses: Int, numExamples: Int) extends Exerci
     val exampleSamples = 400
     val exampleDimensions = 3
 
-    val examples = new NDArray(numExamples, exampleSamples * exampleDimensions)
-    val labels = new NDArray(numExamples, numClasses)
+    val examples = Nd4j.create(numExamples, exampleSamples * exampleDimensions)
+    val labels = Nd4j.create(numExamples, numClasses)
     (0 until numExamples).foreach { row =>
       val clazz = row % numClasses
       val exampleValues = (0 until exampleSamples).flatMap { pos =>
         val v = math.sin(clazz * pos / exampleSamples.toDouble) + (math.random * 0.1)
         Array(v.toFloat, v.toFloat, v.toFloat)
       }
-      val example = new NDArray(exampleValues.toArray)
-      val label = new NDArray((0 until numClasses).map { c => if (c == clazz) 1.toFloat else 0.toFloat }.toArray)
+      val example = Nd4j.create(exampleValues.toArray)
+      val label = Nd4j.create((0 until numClasses).map { c => if (c == clazz) 1.toFloat else 0.toFloat }.toArray)
 
       labels.putRow(row, label)
       examples.putRow(row, example)
@@ -78,18 +78,18 @@ class CuratedExerciseDataSet(directory: File, multiplier: Int = 1) extends Exerc
     val examplesAndLabelVectors = filesAndLabels.par.flatMap(_.toList.flatMap {
       case (label, samples) ⇒
         val labelIndex = labels.indexOf(label)
-        val labelVector = new NDArray(labels.indices.map { l ⇒ if (l == labelIndex) 1.toFloat else 0.toFloat }.toArray)
+        val labelVector = Nd4j.create(labels.indices.map { l ⇒ if (l == labelIndex) 1.toFloat else 0.toFloat }.toArray)
         samples.sliding(windowSize, windowStep).flatMap { window ⇒
           if (window.size == windowSize) {
             (0 until multiplier).map { i ⇒
               val samples = window.flatten.map { v ⇒ if (i == 0) v else v + (math.random * 0.1).toFloat }
-              labelVector → new NDArray(samples.toArray)
+              labelVector → Nd4j.create(samples.toArray)
             }
           } else Nil
         }
     })
-    val examplesMatrix = new NDArray(examplesAndLabelVectors.size, windowSize * windowDimension)
-    val labelsMatrix = new NDArray(examplesAndLabelVectors.size, labels.size)
+    val examplesMatrix = Nd4j.create(examplesAndLabelVectors.size, windowSize * windowDimension)
+    val labelsMatrix = Nd4j.create(examplesAndLabelVectors.size, labels.size)
     examplesAndLabelVectors.zipWithIndex.foreach {
       case ((label, example), i) ⇒
         examplesMatrix.putRow(i, example)

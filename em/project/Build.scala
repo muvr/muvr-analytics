@@ -54,7 +54,7 @@ object Dependencies {
 
   val em =
     Seq(sparkCore, sparkStreaming, sparkSQL, sparkHiveSQL, // sparkRepl,
-      scalaTest, scalaCheck, dl4jCore, nd4jX86)
+      scalaTest, scalaCheck, dl4jCore, nd4jCuda)
 }
 
 object EmBuild extends Build {
