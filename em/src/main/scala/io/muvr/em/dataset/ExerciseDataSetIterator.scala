@@ -7,9 +7,12 @@ import org.nd4j.linalg.cpu.NDArray
 
 import scala.io.Source
 
-trait ExerciseDataSetLoader {
-
+object ExerciseDataSet {
   type ExamplesAndLabels = (INDArray, INDArray, List[String])
+}
+
+trait ExerciseDataSet {
+  import ExerciseDataSet._
 
   def labelsAndExamples: ExamplesAndLabels
 
@@ -17,7 +20,8 @@ trait ExerciseDataSetLoader {
 
 }
 
-class SyntheticExerciseDataSet(numClasses: Int, numExamples: Int) extends ExerciseDataSetLoader {
+class SyntheticExerciseDataSet(numClasses: Int, numExamples: Int) extends ExerciseDataSet {
+  import ExerciseDataSet._
 
   override lazy val labelsAndExamples: ExamplesAndLabels = {
     val exampleSamples = 400
@@ -44,11 +48,11 @@ class SyntheticExerciseDataSet(numClasses: Int, numExamples: Int) extends Exerci
   override def exerciseVsSlacking: (INDArray, INDArray, List[String]) = ???
 }
 
-class CuratedExerciseDataSet(directory: File, multiplier: Int = 1) extends ExerciseDataSetLoader {
+class CuratedExerciseDataSet(directory: File, multiplier: Int = 1) extends ExerciseDataSet {
+  import ExerciseDataSet._
 
-  private def loadFilesInDirectory(directory: File,
-                                   includeEmptyLabels: Boolean)
-                                  (labelTransform: String ⇒ String): ExamplesAndLabels = {
+  private def loadFilesInDirectory(directory: File)
+                                  (labelTransform: String ⇒ Option[String]): ExamplesAndLabels = {
     val windowSize = 400
     val windowStep = 50
     val windowDimension = 3
@@ -58,12 +62,12 @@ class CuratedExerciseDataSet(directory: File, multiplier: Int = 1) extends Exerc
       // each file contains potentially more than one label
       Source.fromFile(file).getLines().toList.flatMap { line ⇒
         line.split(",") match {
-          case Array(x, y, z, label, _, _, _) if includeEmptyLabels || !label.isEmpty ⇒
+          case Array(x, y, z, label, _, _, _) ⇒
             def ccn(s: String): Float = {
               val x = s.toFloat / norm
               if (x > 1) 1 else if (x < -1) -1 else x
             }
-            Some(labelTransform(label) → Array(ccn(x), ccn(y), ccn(z)))
+            labelTransform(label).map(label ⇒ label → Array(ccn(x), ccn(y), ccn(z)))
           case _ ⇒
             None
         }
@@ -95,9 +99,11 @@ class CuratedExerciseDataSet(directory: File, multiplier: Int = 1) extends Exerc
     (examplesMatrix, labelsMatrix, labels)
   }
 
-  override def labelsAndExamples: ExamplesAndLabels = loadFilesInDirectory(directory, includeEmptyLabels = false)(identity)
+  override def labelsAndExamples: ExamplesAndLabels = loadFilesInDirectory(directory) { label ⇒
+    if (label.isEmpty) None else Some(label)
+  }
 
-  override def exerciseVsSlacking: ExamplesAndLabels = loadFilesInDirectory(directory, includeEmptyLabels = true) { l ⇒
-    if (l.isEmpty) "-" else "E"
+  override def exerciseVsSlacking: ExamplesAndLabels = loadFilesInDirectory(directory) { label ⇒
+    if (label.isEmpty) Some("-") else Some("E")
   }
 }
