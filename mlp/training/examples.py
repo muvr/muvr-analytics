@@ -65,11 +65,15 @@ class ExampleColl(object):
     def reset_all_labels(self, new_labels):
         self.labels = [new_labels] * self.num_examples
 
-    def to_csv_data(self):
+    def to_csv_data(self, label_id_mapping = None):
         csv_data = []
         for idx, matrix in enumerate(self.features):
-            label = self.labels[idx]
-            output_filename = label + "_" + str(idx)
+            if label_id_mapping is None:
+                label = self.labels[idx]
+            else:
+                id_label_mapping = {v: k for k, v in label_id_mapping.items()}
+                label = id_label_mapping[self.labels[idx]]
+            output_filename = str(label) + "_" + str(idx)
             single_csv = []
             for one_column in matrix.T:
                 # Format of csv X | Y | Z | biceps-curl | intensity | weight | repetition

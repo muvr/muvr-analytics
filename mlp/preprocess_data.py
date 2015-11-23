@@ -18,7 +18,7 @@ NO_EXERCISE_LABEL = "no_exercise"
 
 non_exercise = ["", "sit", "walk"]
 
-ignore_exercise = ["shoulder press", "hiit running machine", "chest press"]
+ignore_exercise = ["shoulder press", "hiit running machine", "chest press", "angle-chest-press", "run", "dumbbell-chest-press", "leg press", "cross trainer", "barbell-biceps-curl", "hiit", "seated row", "dumbbell-shoulder-press", "dumbbell-chest-fly", "seated row"]
 
 def map_label(input):
     """Uniform the label"""
