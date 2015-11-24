@@ -52,7 +52,7 @@ object Dependency {
 object Dependencies {
   import Dependency._
 
-  val em = Seq(dl4jCore, nd4jX86, nd4jCuda)
+  val em = Seq(dl4jCore, nd4jX86)
 }
 
 object EmBuild extends Build {
