@@ -29,9 +29,11 @@ object Trainer extends App {
     modelConfOutputStream.write(model.conf().toYaml.getBytes("UTF-8"))
     modelConfOutputStream.close()
 
-    val (s, f) = Evaluation.evaluate(model, examplesMatrix, labelsMatrix)
-    println(s"Succeeded $s, failed $f")
+    val cm = Evaluation.evaluate(model, examplesMatrix, labelsMatrix)
+    print(cm.toPrettyString(labelNames))
   }
+
+  print(ConfusionMatrix(2).toPrettyString(List("biceps-curl", "triceps-extension")))
 
   val dataset = new CuratedExerciseDataSet(
     directory = new File(s"$rootDirectory/train/$datasetName"),

@@ -26,6 +26,6 @@ object Evaluator extends App {
   val labelNames = Source.fromInputStream(new FileInputStream(s"$rootDirectory/models/$datasetName.labels")).getLines().toList
 
   println("Evaluating...")
-  val (s, f) = Evaluation.evaluate(model, examplesMatrix, labelsMatrix)
-  println(s"Succeeded $s, failed $f")
+  val cm = Evaluation.evaluate(model, examplesMatrix, labelsMatrix)
+  print(cm.toPrettyString(labelNames))
 }
