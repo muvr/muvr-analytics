@@ -29,10 +29,6 @@ object Trainer extends App {
     modelConfOutputStream.write(model.conf().toYaml.getBytes("UTF-8"))
     modelConfOutputStream.close()
 
-    val modelOutputStream = new ObjectOutputStream(new FileOutputStream(s"$rootDirectory/models/$modelName.model"))
-    modelOutputStream.writeObject(model)
-    modelOutputStream.close()
-
     val (s, f) = Evaluation.evaluate(model, examplesMatrix, labelsMatrix)
     println(s"Succeeded $s, failed $f")
   }
