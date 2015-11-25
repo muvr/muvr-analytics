@@ -33,13 +33,11 @@ object Trainer extends App {
     print(cm.toPrettyString(labelNames))
   }
 
-  print(ConfusionMatrix(2).toPrettyString(List("biceps-curl", "triceps-extension")))
-
   val dataset = new CuratedExerciseDataSet(
     directory = new File(s"$rootDirectory/train/$datasetName"),
-    multiplier = 10)
+    multiplier = 5)
 
-  trainAndSave(dataset.exerciseVsSlacking, s"$datasetName-es")
   trainAndSave(dataset.labelsAndExamples, datasetName)
+  trainAndSave(dataset.exerciseVsSlacking, s"$datasetName-es")
 
 }
