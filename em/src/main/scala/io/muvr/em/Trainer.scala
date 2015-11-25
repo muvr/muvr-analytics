@@ -35,7 +35,7 @@ object Trainer extends App {
 
   val dataset = new CuratedExerciseDataSet(
     directory = new File(s"$rootDirectory/train/$datasetName"),
-    multiplier = 5)
+    multiplier = 10)
 
   trainAndSave(dataset.labelsAndExamples, datasetName)
   trainAndSave(dataset.exerciseVsSlacking, s"$datasetName-es")
