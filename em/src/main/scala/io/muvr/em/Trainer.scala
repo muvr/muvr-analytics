@@ -37,7 +37,7 @@ object Trainer extends App {
     directory = new File(s"$rootDirectory/train/$datasetName"),
     multiplier = 10)
 
-  trainAndSave(dataset.labelsAndExamples, datasetName)
   trainAndSave(dataset.exerciseVsSlacking, s"$datasetName-es")
+  trainAndSave(dataset.labelsAndExamples, datasetName)
 
 }
