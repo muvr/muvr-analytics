@@ -9,7 +9,7 @@ import org.nd4j.linalg.factory.Nd4j
 object Trainer extends App {
 
   val rootDirectory = "/Users/janmachacek/Muvr/muvr-open-training-data"
-  val datasetName = "arms"
+  val datasetName = "core"
 
   def trainAndSave(dataset: ExerciseDataSet.ExamplesAndLabels, modelName: String): Unit = {
     val (examplesMatrix, labelsMatrix, labelNames) = dataset
@@ -39,7 +39,7 @@ object Trainer extends App {
     directory = new File(s"$rootDirectory/train/$datasetName"),
     multiplier = 10)
 
-  trainAndSave(dataset.labelsAndExamples, datasetName)
   trainAndSave(dataset.exerciseVsSlacking, s"$datasetName-es")
+  trainAndSave(dataset.labelsAndExamples, datasetName)
 
 }

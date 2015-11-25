@@ -61,7 +61,7 @@ class CuratedExerciseDataSet(directory: File, multiplier: Int = 1) extends Exerc
     val filesAndLabels = directory.listFiles().toList.map { file ⇒
       // each file contains potentially more than one label
       Source.fromFile(file).getLines().toList.flatMap { line ⇒
-        line.split(",") match {
+        line.split(",", -1) match {
           case Array(x, y, z, label, _, _, _) ⇒
             def ccn(s: String): Float = {
               val x = s.toFloat / norm
