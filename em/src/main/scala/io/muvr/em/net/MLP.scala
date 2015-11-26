@@ -10,9 +10,9 @@ import org.deeplearning4j.nn.weights.WeightInit
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener
 import org.nd4j.linalg.lossfunctions.LossFunctions
 
-class MLP {
+object MLP {
 
-  def model(numInputs: Int, numOutputs: Int): MultiLayerNetwork = {
+  def newModel(numInputs: Int, numOutputs: Int): MultiLayerNetwork = {
     val seed = 666
     val iterations = 20
 
@@ -51,7 +51,7 @@ class MLP {
         .nIn(1500)
         .nOut(1000)
         .activation("relu")
-        .weightInit(WeightInit.DISTRIBUTION)
+        .weightInit(WeightInit.RELU)
         .dist(distribution)
         .build())
       .layer(4, new DenseLayer.Builder()

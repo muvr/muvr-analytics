@@ -7,23 +7,56 @@ import org.nd4j.linalg.factory._
 
 import scala.io.Source
 
+/**
+  * The labels
+  * @param labels label names
+  */
+case class Labels(labels: List[String]) extends AnyVal
+
+/**
+  * EDS type definitions
+  */
 object ExerciseDataSet {
-  type ExamplesAndLabels = (INDArray, INDArray, List[String])
+  /**
+    * EAL is matrix of examples with matching rows in labels and label names
+    */
+  type ExamplesAndLabels = (INDArray, INDArray, Labels)
+
+  /**
+    * The examples
+    */
+  type Examples = (INDArray, INDArray)
+
+  case class DataSet(labels: Labels, numInputs: Int, examples: Iterator[Examples]) {
+    lazy val numOutputs: Int = labels.labels.length
+  }
+
 }
 
+/**
+  * Implementations of EDS must provide iterator over EALs
+  */
 trait ExerciseDataSet {
   import ExerciseDataSet._
 
-  def labelsAndExamples: ExamplesAndLabels
+  /**
+    * The iterator of distinct exercises
+    * @return the I of EAL
+    */
+  def labelsAndExamples: DataSet
 
-  def exerciseVsSlacking: ExamplesAndLabels
+  /**
+    * The iterator of exercise vs. slacking
+    * @return the I of EAL
+    */
+  def exerciseVsSlacking: DataSet
 
 }
 
 class SyntheticExerciseDataSet(numClasses: Int, numExamples: Int) extends ExerciseDataSet {
   import ExerciseDataSet._
 
-  override lazy val labelsAndExamples: ExamplesAndLabels = {
+  override lazy val labelsAndExamples: DataSet = {
     val exampleSamples = 400
     val exampleDimensions = 3
 
@@ -42,17 +75,17 @@ class SyntheticExerciseDataSet(numClasses: Int, numExamples: Int) extends Exerci
       examples.putRow(row, example)
     }
 
-    (examples, labels, (0 until labels.rows()).map(_.toString).toList)
+    DataSet(Labels((0 until labels.rows()).map(_.toString).toList), 1200, Iterator((examples, labels)))
   }
 
-  override def exerciseVsSlacking: (INDArray, INDArray, List[String]) = ???
+  override def exerciseVsSlacking: DataSet = ???
 }
 
 class CuratedExerciseDataSet(directory: File, multiplier: Int = 1) extends ExerciseDataSet {
   import ExerciseDataSet._
 
   private def loadFilesInDirectory(directory: File)
-                                  (labelTransform: String ⇒ Option[String]): ExamplesAndLabels = {
+                                  (labelTransform: String ⇒ Option[String]): DataSet = {
     val windowSize = 400
     val windowStep = 50
     val windowDimension = 3
@@ -96,14 +129,14 @@ class CuratedExerciseDataSet(directory: File, multiplier: Int = 1) extends Exerc
         labelsMatrix.putRow(i, label)
     }
 
-    (examplesMatrix, labelsMatrix, labels)
+    DataSet(Labels(labels), 1200, Iterator((examplesMatrix, labelsMatrix)))
   }
 
-  override def labelsAndExamples: ExamplesAndLabels = loadFilesInDirectory(directory) { label ⇒
+  override def labelsAndExamples: DataSet = loadFilesInDirectory(directory) { label ⇒
     if (label.isEmpty) None else Some(label)
   }
 
-  override def exerciseVsSlacking: ExamplesAndLabels = loadFilesInDirectory(directory) { label ⇒
+  override def exerciseVsSlacking: DataSet = loadFilesInDirectory(directory) { label ⇒
     if (label.isEmpty) Some("-") else Some("E")
   }
 }

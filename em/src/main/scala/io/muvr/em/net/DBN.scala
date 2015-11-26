@@ -8,9 +8,9 @@ import org.deeplearning4j.nn.weights.WeightInit
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener
 import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction
 
-class DBN {
+object DBN {
 
-  def model(numInputs: Int, numOutputs: Int): MultiLayerNetwork = {
+  def newModel(numInputs: Int, numOutputs: Int): MultiLayerNetwork = {
     val seed = 666
     val iterations = 20
 

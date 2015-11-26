@@ -1,5 +1,5 @@
 package io.muvr.em
-
+/*
 import java.io._
 
 import io.muvr.em.dataset.CuratedExerciseDataSet
@@ -7,7 +7,7 @@ import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 
 import scala.io.Source
 
-object Evaluator extends App {
+object ModelEvaluator extends App {
   val rootDirectory = "/Users/janmachacek/Muvr/muvr-open-training-data"
   val datasetName = "core"
 
@@ -29,3 +29,4 @@ object Evaluator extends App {
   val cm = Evaluation.evaluate(model, examplesMatrix, labelsMatrix)
   print(cm.toPrettyString(labelNames))
 }
+*/

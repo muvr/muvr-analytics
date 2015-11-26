@@ -1,18 +1,45 @@
 package io.muvr.em
 
+import io.muvr.em.dataset.Labels
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.nd4j.linalg.api.ndarray.INDArray
 
+/**
+  * The confusion matrix
+  * @param labelCount the number of labels
+  */
 case class ConfusionMatrix(labelCount: Int) {
   private val entries: Array[Array[Int]] = Array.fill(labelCount)(Array.fill(labelCount)(0))
+  private var predictions: Int = 0
+  private var truePositives: Int = 0
+  private var falsePositives: Int = 0
 
+  /**
+    * Adds a predicted vs. actual label prediction
+    * @param actualLabel the actual label
+    * @param predictedLabel the predicted label
+    */
   def +=(actualLabel: Int, predictedLabel: Int): Unit = {
     entries(actualLabel)(predictedLabel) = entries(actualLabel)(predictedLabel) + 1
+    predictions += 1
+    if (actualLabel == predictedLabel) truePositives += 1
+    else falsePositives += 1
   }
 
-  def toPrettyString(labelNames: List[String]): String = {
+  /**
+    * Computes the accuracy
+    * @return the accuracy
+    */
+  def accuracy(): Double = truePositives.toDouble / predictions.toDouble
+
+  /**
+    * Prints confusion matrix
+    * @param labels the label names
+    * @return the confusion matrix string
+    */
+  def toPrettyString(labels: Labels): String = {
     val sb = new StringBuilder()
-    val labelWidth = labelNames.map(_.length).max + 2
+    val labelWidth = labels.labels.map(_.length).max + 2
     implicit class LabelStringOps(s: String) {
       lazy val labelText: String = s.padTo(labelWidth, " ").take(labelWidth).mkString
     }
@@ -20,20 +47,22 @@ case class ConfusionMatrix(labelCount: Int) {
     val emptyLabel = "".labelText
 
     sb.append(emptyLabel).append(" | ")
-    labelNames.foreach { label ⇒ sb.append(label.labelText) }
+    labels.labels.foreach { label ⇒ sb.append(label.labelText) }
     sb.append("\n")
     sb.append("".padTo(sb.length, "-").mkString)
     sb.append("\n")
 
-    labelNames.zipWithIndex.foreach { case (label, i) ⇒
+    labels.labels.zipWithIndex.foreach { case (label, i) ⇒
       sb.append(label.labelText).append(" | ")
-      labelNames.indices.foreach { j ⇒
+      labels.labels.indices.foreach { j ⇒
         val v = entries(i)(j)
         sb.append(v.toString.labelText)
       }
       sb.append("\n")
     }
     sb.append("\n")
+    sb.append("\n")
+    sb.append(s"Accuracy = ${accuracy()}\n")
 
     sb.toString
   }
