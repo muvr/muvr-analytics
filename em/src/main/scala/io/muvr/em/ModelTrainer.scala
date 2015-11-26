@@ -77,13 +77,17 @@ object ModelTrainer extends App {
     (model.id, cm.accuracy())
   }
 
+  // construct the data set
   val dataSet = new CuratedExerciseDataSet(directory = new File(s"$rootDirectory/train/$datasetName"))
 
+  // create the model metadata
   val models: List[Model] = List(MLP.shallowModel, MLP.shallowModel, MLP.shallowModel, MLP.shallowModel, DBN.model)
 
+  // train, evaluate, and save each model on the data, selecting the best one
   val bem = models.map(pipeline("E", dataSet.labelsAndExamples, dataSet.labelsAndExamples)).maxBy(_._2)
   val bsm = models.map(pipeline("S", dataSet.exerciseVsSlacking, dataSet.exerciseVsSlacking)).maxBy(_._2)
 
+  // display the best model
   println(bem)
   println(bsm)
 
