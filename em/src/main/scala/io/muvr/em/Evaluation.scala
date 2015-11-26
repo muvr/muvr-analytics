@@ -1,6 +1,6 @@
 package io.muvr.em
 
-import java.io.{BufferedWriter, OutputStream}
+import java.io.BufferedWriter
 
 import io.muvr.em.dataset.Labels
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
@@ -74,7 +74,7 @@ case class ConfusionMatrix(labelCount: Int) {
     * Computes the accuracy
     * @return the accuracy
     */
-  def accuracy(): Double = truePositives.size / predictions.toDouble
+  def accuracy(): Double = truePositives.values.sum.toDouble / predictions.toDouble
 
   /**
     * Computes pecision for the given label
