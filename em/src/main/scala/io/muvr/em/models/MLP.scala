@@ -26,7 +26,7 @@ object MLP {
       .optimizationAlgo(OptimizationAlgorithm.LINE_GRADIENT_DESCENT)
       .constrainGradientToUnitNorm(true)
       .learningRate(1e-3f)
-      .momentum(0.1)
+      .momentum(0.5)
       .maxNumLineSearchIterations(10)
       .list(6)
       .layer(0, new DenseLayer.Builder()
