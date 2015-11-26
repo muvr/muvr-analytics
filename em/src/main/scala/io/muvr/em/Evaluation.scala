@@ -76,7 +76,7 @@ object Evaluation {
   def evaluate(model: MultiLayerNetwork, examples: INDArray, labels: INDArray): ConfusionMatrix = {
     val cm = ConfusionMatrix(labels.columns())
 
-    (0 until examples.rows()).par.foreach { row =>
+    (0 until examples.rows()).foreach { row =>
         val example = examples.getRow(row)
         val (ai, _) = labels.getRow(row).maxf
         val (pi, _) = model.output(example).maxf

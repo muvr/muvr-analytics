@@ -1,5 +1,6 @@
-package io.muvr.em.net
+package io.muvr.em.models
 
+import io.muvr.em.Model
 import org.deeplearning4j.nn.api.OptimizationAlgorithm
 import org.deeplearning4j.nn.conf.NeuralNetConfiguration
 import org.deeplearning4j.nn.conf.distribution.UniformDistribution
@@ -12,7 +13,9 @@ import org.nd4j.linalg.lossfunctions.LossFunctions
 
 object MLP {
 
-  def newModel(numInputs: Int, numOutputs: Int): MultiLayerNetwork = {
+  val model: Model = Model("mlp", newModel)
+
+  private def newModel(numInputs: Int, numOutputs: Int): MultiLayerNetwork = {
     val seed = 666
     val iterations = 20
 

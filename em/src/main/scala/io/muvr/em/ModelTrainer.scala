@@ -4,7 +4,7 @@ import java.io._
 
 import io.muvr.em.dataset.ExerciseDataSet.DataSet
 import io.muvr.em.dataset.{Labels, CuratedExerciseDataSet, ExerciseDataSet}
-import io.muvr.em.net.{DBN, MLP}
+import io.muvr.em.models.{DBN, MLP}
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.nd4j.linalg.factory.Nd4j
 
@@ -13,12 +13,9 @@ object ModelTrainer extends App {
   val rootDirectory = "/Users/janmachacek/Muvr/muvr-open-training-data"
   val datasetName = "arms"
 
-  type ModelId = String
-  type NewModel = (Int, Int) => MultiLayerNetwork
-
-  def train(dataSet: DataSet, modelName: String, newModel: NewModel): MultiLayerNetwork = {
+  def train(dataSet: DataSet, modelName: String, modelConstructor: Model.Constructor): MultiLayerNetwork = {
     // construct the "empty" model
-    val model = newModel(dataSet.numInputs, dataSet.numOutputs)
+    val model = modelConstructor(dataSet.numInputs, dataSet.numOutputs)
     val (examplesMatrix, labelsMatrix) = dataSet.examples
     // fit the examples and labels in the model
     model.fit(examplesMatrix, labelsMatrix)
@@ -38,20 +35,21 @@ object ModelTrainer extends App {
     cm.accuracy()
   }
 
-  def pipeline(trainDataSet: DataSet, testDataSet: DataSet)(mm: (ModelId, NewModel)): Double = {
-    val (id, newModel) = mm
-    val model = train(trainDataSet, datasetName, newModel)
-    save(datasetName, model, trainDataSet.labels)
-    evaluate(model, testDataSet.labels, testDataSet)
+  def pipeline(trainDataSet: DataSet, testDataSet: DataSet)(model: Model): (Model.Id, Double) = {
+    val m = train(trainDataSet, datasetName, model.modelConstructor)
+    save(datasetName, m, trainDataSet.labels)
+    val result = evaluate(m, testDataSet.labels, testDataSet)
+    (model.id, result)
   }
 
   val dataSet = new CuratedExerciseDataSet(
     directory = new File(s"$rootDirectory/train/$datasetName"),
     multiplier = 1)
 
-  val models: List[(ModelId, NewModel)] = List(("dbn", DBN.newModel), ("mlp", MLP.newModel))
+  val models: List[Model] = List(DBN.model, MLP.model)
 
-  models.foreach(pipeline(dataSet.labelsAndExamples, dataSet.labelsAndExamples))
-  models.foreach(pipeline(dataSet.exerciseVsSlacking, dataSet.exerciseVsSlacking))
+  val result = models.map(pipeline(dataSet.labelsAndExamples, dataSet.labelsAndExamples))
+  println(result)
+  // models.foreach(pipeline(dataSet.exerciseVsSlacking, dataSet.exerciseVsSlacking))
 
 }

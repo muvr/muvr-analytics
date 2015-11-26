@@ -1,5 +1,6 @@
-package io.muvr.em.net
+package io.muvr.em.models
 
+import io.muvr.em.Model
 import org.deeplearning4j.nn.api.OptimizationAlgorithm
 import org.deeplearning4j.nn.conf.layers.{OutputLayer, RBM}
 import org.deeplearning4j.nn.conf.{GradientNormalization, NeuralNetConfiguration, Updater}
@@ -10,7 +11,9 @@ import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction
 
 object DBN {
 
-  def newModel(numInputs: Int, numOutputs: Int): MultiLayerNetwork = {
+  val model: Model = Model("dbn", newModel)
+
+  private def newModel(numInputs: Int, numOutputs: Int): MultiLayerNetwork = {
     val seed = 666
     val iterations = 20
 
