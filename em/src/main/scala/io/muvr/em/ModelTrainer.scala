@@ -4,10 +4,8 @@ import java.io._
 
 import io.muvr.em.dataset.ExerciseDataSet.DataSet
 import io.muvr.em.dataset.{CuratedExerciseDataSet, Labels}
-import io.muvr.em.models.{DBN, MLP}
+import io.muvr.em.models.MLP
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
-
-import scala.tools.nsc.ConsoleWriter
 
 object ModelTrainer extends App {
 
@@ -81,7 +79,7 @@ object ModelTrainer extends App {
   val dataSet = new CuratedExerciseDataSet(directory = new File(s"$rootDirectory/train/$datasetName"))
 
   // create the model metadata
-  val models: List[Model] = List(MLP.shallowModel, MLP.shallowModel, MLP.shallowModel, MLP.shallowModel, DBN.model)
+  val models: List[Model] = List(MLP.shallowModel, MLP.shallowModel, MLP.shallowModel, MLP.shallowModel)
 
   // train, evaluate, and save each model on the data, selecting the best one
   val bem = models.map(pipeline("E", dataSet.labelsAndExamples, dataSet.labelsAndExamples)).maxBy(_._2)
