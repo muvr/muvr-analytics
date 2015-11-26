@@ -24,6 +24,8 @@ object MLP {
       .constrainGradientToUnitNorm(true)
       .learningRate(0.005)
       .momentum(0.4)
+      // .useDropConnect(true)
+      // .regularization(true)
       .stepFunction(new NegativeDefaultStepFunction())
       .maxNumLineSearchIterations(10)
       .list(4)
