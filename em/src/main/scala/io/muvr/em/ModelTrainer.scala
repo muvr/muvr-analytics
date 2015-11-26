@@ -3,10 +3,9 @@ package io.muvr.em
 import java.io._
 
 import io.muvr.em.dataset.ExerciseDataSet.DataSet
-import io.muvr.em.dataset.{Labels, CuratedExerciseDataSet, ExerciseDataSet}
+import io.muvr.em.dataset.{CuratedExerciseDataSet, Labels}
 import io.muvr.em.models.{DBN, MLP}
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
-import org.nd4j.linalg.factory.Nd4j
 
 object ModelTrainer extends App {
 
