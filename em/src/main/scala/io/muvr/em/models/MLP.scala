@@ -1,19 +1,20 @@
 package io.muvr.em.models
 
+import java.util.UUID
+
 import io.muvr.em.Model
 import org.deeplearning4j.nn.api.OptimizationAlgorithm
-import org.deeplearning4j.nn.conf.{Updater, NeuralNetConfiguration}
+import org.deeplearning4j.nn.conf.NeuralNetConfiguration
 import org.deeplearning4j.nn.conf.distribution.UniformDistribution
 import org.deeplearning4j.nn.conf.layers.{DenseLayer, OutputLayer}
-import org.deeplearning4j.nn.conf.stepfunctions.{NegativeDefaultStepFunction, NegativeGradientStepFunction, DefaultStepFunction, StepFunction}
+import org.deeplearning4j.nn.conf.stepfunctions.NegativeDefaultStepFunction
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.deeplearning4j.nn.weights.WeightInit
-import org.deeplearning4j.optimize.listeners.ScoreIterationListener
 import org.nd4j.linalg.lossfunctions.LossFunctions
 
 object MLP {
 
-  def shallowModel: Model = Model("smlp@" + System.currentTimeMillis(), newShallowModel)
+  def shallowModel: Model = Model("smlp@" + UUID.randomUUID().toString, newShallowModel)
 
   private def newShallowModel(numInputs: Int, numOutputs: Int): MultiLayerNetwork = {
     val distribution: UniformDistribution = new UniformDistribution(-0.1, 0.1)
