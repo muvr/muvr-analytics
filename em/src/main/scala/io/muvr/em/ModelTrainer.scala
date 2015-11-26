@@ -19,10 +19,9 @@ object ModelTrainer extends App {
   def train(dataSet: DataSet, modelName: String, newModel: NewModel): MultiLayerNetwork = {
     // construct the "empty" model
     val model = newModel(dataSet.numInputs, dataSet.numOutputs)
-    dataSet.examples.foreach { example =>
-      // fit the examples and labels in the model
-      model.fit(example._1, example._2)
-    }
+    val (examplesMatrix, labelsMatrix) = dataSet.examples
+    // fit the examples and labels in the model
+    model.fit(examplesMatrix, labelsMatrix)
     model
   }
 
@@ -33,17 +32,17 @@ object ModelTrainer extends App {
   }
 
   def evaluate(model: MultiLayerNetwork, labels: Labels, dataSet: DataSet): Double = {
-    val (examplesMatrix, labelsMatrix) = dataSet.examples.next()
+    val (examplesMatrix, labelsMatrix) = dataSet.examples
     val cm = Evaluation.evaluate(model, examplesMatrix, labelsMatrix)
     print(cm.toPrettyString(labels))
     cm.accuracy()
   }
 
-  def pipeline(dataSet: DataSet)(mm: (ModelId, NewModel)): Double = {
+  def pipeline(trainDataSet: DataSet, testDataSet: DataSet)(mm: (ModelId, NewModel)): Double = {
     val (id, newModel) = mm
-    val model = train(dataSet, datasetName, newModel)
-    save(datasetName, model, dataSet.labels)
-    evaluate(model, dataSet.labels, dataSet)
+    val model = train(trainDataSet, datasetName, newModel)
+    save(datasetName, model, trainDataSet.labels)
+    evaluate(model, testDataSet.labels, testDataSet)
   }
 
   val dataSet = new CuratedExerciseDataSet(
@@ -52,7 +51,7 @@ object ModelTrainer extends App {
 
   val models: List[(ModelId, NewModel)] = List(("dbn", DBN.newModel), ("mlp", MLP.newModel))
 
-  models.foreach(pipeline(dataSet.labelsAndExamples))
-  models.foreach(pipeline(dataSet.exerciseVsSlacking))
+  models.foreach(pipeline(dataSet.labelsAndExamples, dataSet.labelsAndExamples))
+  models.foreach(pipeline(dataSet.exerciseVsSlacking, dataSet.exerciseVsSlacking))
 
 }

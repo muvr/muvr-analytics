@@ -27,7 +27,7 @@ object ExerciseDataSet {
     */
   type Examples = (INDArray, INDArray)
 
-  case class DataSet(labels: Labels, numInputs: Int, examples: Iterator[Examples]) {
+  case class DataSet(labels: Labels, numInputs: Int, examples: Examples) {
     lazy val numOutputs: Int = labels.labels.length
   }
 
@@ -75,7 +75,7 @@ class SyntheticExerciseDataSet(numClasses: Int, numExamples: Int) extends Exerci
       examples.putRow(row, example)
     }
 
-    DataSet(Labels((0 until labels.rows()).map(_.toString).toList), 1200, Iterator((examples, labels)))
+    DataSet(Labels((0 until labels.rows()).map(_.toString).toList), 1200, (examples, labels))
   }
 
   override def exerciseVsSlacking: DataSet = ???
@@ -129,7 +129,7 @@ class CuratedExerciseDataSet(directory: File, multiplier: Int = 1) extends Exerc
         labelsMatrix.putRow(i, label)
     }
 
-    DataSet(Labels(labels), 1200, Iterator((examplesMatrix, labelsMatrix)))
+    DataSet(Labels(labels), 1200, (examplesMatrix, labelsMatrix))
   }
 
   override def labelsAndExamples: DataSet = loadFilesInDirectory(directory) { label ⇒
