@@ -33,11 +33,19 @@ object ModelPersistance {
   final implicit class LabelsPersistence(labels: Labels) {
 
     def save(rootDirectory: String, name: String): Unit = {
-      val labelsOutputStream = new FileOutputStream(s"$rootDirectory/models/$name.labels")
-      labelsOutputStream.write(labels.labels.mkString("\n").getBytes("UTF-8"))
-      labelsOutputStream.close()
+      val os = new FileOutputStream(s"$rootDirectory/models/$name.labels")
+      os.write(labels.labels.mkString("\n").getBytes("UTF-8"))
+      os.close()
     }
 
+  }
+
+  final implicit class ConfusionMatrixPersistence(cm: ConfusionMatrix) {
+    def save(rootDirectory: String, name: String, labels: Labels): Unit = {
+      val os = new FileOutputStream(s"$rootDirectory/models/$name-cm.csv")
+      cm.saveAsCsv(labels, new BufferedWriter(new OutputStreamWriter(os)))
+      os.close()
+    }
   }
 
   def load(params: InputStream, conf: InputStream): MultiLayerNetwork = {

@@ -12,7 +12,7 @@ import scala.tools.nsc.ConsoleWriter
 object ModelTrainer extends App {
 
   val rootDirectory = "/Users/janmachacek/Muvr/muvr-open-training-data"
-  val datasetName = "armsx"
+  val datasetName = "arms"
 
   /**
     * Train the model created by ``modelConstructor`` on the given ``dataSet``, with some specific ``modelName``
@@ -37,10 +37,11 @@ object ModelTrainer extends App {
     * @param model the model
     * @param labels the labels
     */
-  def save(modelName: String, model: MultiLayerNetwork, labels: Labels): Unit = {
+  def save(modelName: String, model: MultiLayerNetwork, cm: ConfusionMatrix, labels: Labels): Unit = {
     import ModelPersistance._
     model.save(rootDirectory, modelName)
     labels.save(rootDirectory, modelName)
+    cm.save(rootDirectory, modelName, labels)
   }
 
   /**
@@ -50,11 +51,9 @@ object ModelTrainer extends App {
     * @param dataSet the test data set
     * @return the accuracy
     */
-  def evaluate(model: MultiLayerNetwork, labels: Labels, dataSet: DataSet): Double = {
+  def evaluate(model: MultiLayerNetwork, labels: Labels, dataSet: DataSet): ConfusionMatrix = {
     val (examplesMatrix, labelsMatrix) = dataSet.examples
-    val cm = Evaluation.evaluate(model, examplesMatrix, labelsMatrix)
-    print(cm.toPrettyString(labels))
-    cm.accuracy()
+    Evaluation.evaluate(model, examplesMatrix, labelsMatrix)
   }
 
   /**
@@ -66,22 +65,26 @@ object ModelTrainer extends App {
     * @param model the model metadata
     * @return model id and accuracy
     */
-  def pipeline(trainDataSet: DataSet, testDataSet: DataSet)(model: Model): (Model.Id, Double) = {
+  def pipeline(tag: String, trainDataSet: DataSet, testDataSet: DataSet)(model: Model): (Model.Id, Double) = {
     val m = train(trainDataSet, datasetName, model.modelConstructor)
-    save(datasetName + model.id, m, trainDataSet.labels)
-    println("".padTo(50, "*").mkString)
+    val cm = evaluate(m, testDataSet.labels, testDataSet)
+    save(s"$datasetName-$tag-${model.id}", m, cm, trainDataSet.labels)
+
     println(model.id)
-    val result = evaluate(m, testDataSet.labels, testDataSet)
-    println("".padTo(50, "*").mkString)
-    (model.id, result)
+    println(cm.toPrettyString(testDataSet.labels))
+    println()
+
+    (model.id, cm.accuracy())
   }
 
   val dataSet = new CuratedExerciseDataSet(directory = new File(s"$rootDirectory/train/$datasetName"))
 
   val models: List[Model] = List(MLP.shallowModel, MLP.shallowModel, MLP.shallowModel, MLP.shallowModel, DBN.model)
 
-  val result = models.map(pipeline(dataSet.labelsAndExamples, dataSet.labelsAndExamples))
-  println(result)
-  //models.map(pipeline(dataSet.exerciseVsSlacking, dataSet.exerciseVsSlacking))
+  val bem = models.map(pipeline("E", dataSet.labelsAndExamples, dataSet.labelsAndExamples)).maxBy(_._2)
+  val bsm = models.map(pipeline("S", dataSet.exerciseVsSlacking, dataSet.exerciseVsSlacking)).maxBy(_._2)
+
+  println(bem)
+  println(bsm)
 
 }
