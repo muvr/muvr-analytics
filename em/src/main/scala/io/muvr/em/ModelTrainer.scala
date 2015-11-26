@@ -76,7 +76,7 @@ object ModelTrainer extends App {
     directory = new File(s"$rootDirectory/train/$datasetName"),
     multiplier = 10)
 
-  val models: List[Model] = List(DBN.model, MLP.model)
+  val models: List[Model] = List(MLP.model, DBN.model)
 
   val result = models.map(pipeline(dataSet.labelsAndExamples, dataSet.labelsAndExamples))
   println(result)
