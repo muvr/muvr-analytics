@@ -67,13 +67,16 @@ object ModelTrainer extends App {
   def pipeline(trainDataSet: DataSet, testDataSet: DataSet)(model: Model): (Model.Id, Double) = {
     val m = train(trainDataSet, datasetName, model.modelConstructor)
     save(datasetName + model.id, m, trainDataSet.labels)
+    println("".padTo(50, "*").mkString)
+    println(model.id)
     val result = evaluate(m, testDataSet.labels, testDataSet)
+    println("".padTo(50, "*").mkString)
     (model.id, result)
   }
 
   val dataSet = new CuratedExerciseDataSet(directory = new File(s"$rootDirectory/train/$datasetName"))
 
-  val models: List[Model] = List(MLP.shallowModel, MLP.deepModel, DBN.model)
+  val models: List[Model] = List(MLP.shallowModel, MLP.shallowModel, MLP.shallowModel, MLP.shallowModel, DBN.model)
 
   val result = models.map(pipeline(dataSet.labelsAndExamples, dataSet.labelsAndExamples))
   println(result)

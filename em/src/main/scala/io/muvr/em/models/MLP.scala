@@ -2,10 +2,10 @@ package io.muvr.em.models
 
 import io.muvr.em.Model
 import org.deeplearning4j.nn.api.OptimizationAlgorithm
-import org.deeplearning4j.nn.conf.NeuralNetConfiguration
+import org.deeplearning4j.nn.conf.{Updater, NeuralNetConfiguration}
 import org.deeplearning4j.nn.conf.distribution.UniformDistribution
 import org.deeplearning4j.nn.conf.layers.{DenseLayer, OutputLayer}
-import org.deeplearning4j.nn.conf.stepfunctions.StepFunction
+import org.deeplearning4j.nn.conf.stepfunctions.{NegativeDefaultStepFunction, NegativeGradientStepFunction, DefaultStepFunction, StepFunction}
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.deeplearning4j.nn.weights.WeightInit
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener
@@ -13,8 +13,7 @@ import org.nd4j.linalg.lossfunctions.LossFunctions
 
 object MLP {
 
-  val deepModel: Model = Model("deep-mlp", newDeepModel)
-  val shallowModel: Model = Model("shallow-mlp", newShallowModel)
+  def shallowModel: Model = Model("smlp@" + System.currentTimeMillis(), newShallowModel)
 
   private def newShallowModel(numInputs: Int, numOutputs: Int): MultiLayerNetwork = {
     val distribution: UniformDistribution = new UniformDistribution(-0.1, 0.1)
@@ -48,8 +47,8 @@ object MLP {
         .nIn(250)
         .nOut(100)
         .dropOut(0.9)
-        .activation("hardtanh")
-        .weightInit(WeightInit.DISTRIBUTION)
+        .activation("tanh")
+        .weightInit(WeightInit.XAVIER)
         .biasInit(1.0)
         .dist(distribution)
         .build())
@@ -59,79 +58,7 @@ object MLP {
         .biasInit(1.0)
         .dropOut(0.9)
         .activation("softmax")
-        .weightInit(WeightInit.DISTRIBUTION)
-        .dist(distribution)
-        .build())
-      .backprop(true).pretrain(false)
-      .build()
-
-    val model = new MultiLayerNetwork(conf)
-    model.init()
-    model
-  }
-
-  private def newDeepModel(numInputs: Int, numOutputs: Int): MultiLayerNetwork = {
-    val distribution: UniformDistribution = new UniformDistribution(-0.1, 0.1)
-    val conf = new NeuralNetConfiguration.Builder()
-      .iterations(10)
-      .optimizationAlgo(OptimizationAlgorithm.LINE_GRADIENT_DESCENT)
-      .constrainGradientToUnitNorm(true)
-      .learningRate(0.01)
-      .momentum(0.5)
-      .maxNumLineSearchIterations(10)
-      .list(6)
-      .layer(0, new DenseLayer.Builder()
-        .nIn(numInputs)
-        .nOut(1000)
-        .biasInit(1.0)
-        .dropOut(0.9)
-        .activation("leakyrelu")
         .weightInit(WeightInit.XAVIER)
-        .dist(distribution)
-        .build())
-      .layer(1, new DenseLayer.Builder()
-        .nIn(1000)
-        .nOut(800)
-        .dropOut(0.9)
-        .activation("tanh")
-        .weightInit(WeightInit.XAVIER)
-        .biasInit(1.0)
-        .dist(distribution)
-        .build())
-      .layer(2, new DenseLayer.Builder()
-        .nIn(800)
-        .nOut(500)
-        .dropOut(0.9)
-        .activation("hardtanh")
-        .weightInit(WeightInit.XAVIER)
-        .biasInit(1.0)
-        .dist(distribution)
-        .build())
-      .layer(3, new DenseLayer.Builder()
-        .nIn(500)
-        .nOut(250)
-        .dropOut(0.9)
-        .activation("relu")
-        .weightInit(WeightInit.RELU)
-        .biasInit(1.0)
-        .dist(distribution)
-        .build())
-      .layer(4, new DenseLayer.Builder()
-        .nIn(250)
-        .nOut(100)
-        .dropOut(0.9)
-        .activation("relu")
-        .weightInit(WeightInit.RELU)
-        .biasInit(1.0)
-        .dist(distribution)
-        .build())
-      .layer(5, new OutputLayer.Builder(LossFunctions.LossFunction.SQUARED_LOSS)
-        .nIn(100)
-        .nOut(numOutputs)
-        .biasInit(1.0)
-        .dropOut(0.9)
-        .activation("softmax")
-        .weightInit(WeightInit.DISTRIBUTION)
         .dist(distribution)
         .build())
       .backprop(true).pretrain(false)
