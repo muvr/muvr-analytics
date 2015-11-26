@@ -1,5 +1,7 @@
 package io.muvr.em
 
+import java.io.{BufferedWriter, OutputStream}
+
 import io.muvr.em.dataset.Labels
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.nd4j.linalg.api.ndarray.INDArray
@@ -31,6 +33,30 @@ case class ConfusionMatrix(labelCount: Int) {
     * @return the accuracy
     */
   def accuracy(): Double = truePositives.toDouble / predictions.toDouble
+
+  /**
+    * Save this CM into a CSV file
+    * @param labels the labels
+    * @param out the output buffer
+    */
+  def saveAsCsv(labels: Labels, out: BufferedWriter): Unit = {
+    out.write("-,")
+    labels.labels.zipWithIndex.foreach { case (label, i) ⇒
+      out.write(s""""$label"""")
+      if (i < labels.labels.length - 1) out.write(",")
+    }
+    out.write("\n")
+    labels.labels.zipWithIndex.foreach { case (actual, i) ⇒
+      out.write(s""""$actual""""); out.write(",")
+      labels.labels.indices.foreach { j ⇒
+        val v = entries(i)(j)
+        out.write(v.toString)
+        if (j < labels.labels.length - 1) out.write(",")
+      }
+      out.write("\n")
+    }
+    out.close()
+  }
 
   /**
     * Prints confusion matrix
@@ -66,7 +92,6 @@ case class ConfusionMatrix(labelCount: Int) {
 
     sb.toString
   }
-
 
 }
 

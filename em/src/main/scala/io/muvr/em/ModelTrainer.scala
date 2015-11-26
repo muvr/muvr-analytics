@@ -7,6 +7,8 @@ import io.muvr.em.dataset.{CuratedExerciseDataSet, Labels}
 import io.muvr.em.models.{DBN, MLP}
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 
+import scala.tools.nsc.ConsoleWriter
+
 object ModelTrainer extends App {
 
   val rootDirectory = "/Users/janmachacek/Muvr/muvr-open-training-data"

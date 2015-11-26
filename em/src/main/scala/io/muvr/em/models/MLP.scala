@@ -23,6 +23,7 @@ object MLP {
       .constrainGradientToUnitNorm(true)
       .learningRate(0.005)
       .momentum(0.4)
+      .stepFunction(new NegativeDefaultStepFunction())
       .maxNumLineSearchIterations(10)
       .list(4)
       .layer(0, new DenseLayer.Builder()
