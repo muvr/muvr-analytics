@@ -6,6 +6,7 @@ object Model {
   type Id = String
   type Constructor = (Int, Int) ⇒ MultiLayerNetwork
 }
+
 /**
   * Model details
   * @param id identity

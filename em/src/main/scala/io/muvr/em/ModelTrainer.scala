@@ -10,7 +10,7 @@ import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 object ModelTrainer extends App {
 
   val rootDirectory = "/Users/janmachacek/Muvr/muvr-open-training-data"
-  val datasetName = "arms"
+  val datasetName = "armsx"
 
   /**
     * Train the model created by ``modelConstructor`` on the given ``dataSet``, with some specific ``modelName``
@@ -71,13 +71,12 @@ object ModelTrainer extends App {
     (model.id, result)
   }
 
-  val dataSet = new CuratedExerciseDataSet(
-    directory = new File(s"$rootDirectory/train/$datasetName"),
-    multiplier = 10)
+  val dataSet = new CuratedExerciseDataSet(directory = new File(s"$rootDirectory/train/$datasetName"))
 
-  val models: List[Model] = List(MLP.model, DBN.model)
+  val models: List[Model] = List(MLP.deepModel, MLP.shallowModel, DBN.model)
 
   val result = models.map(pipeline(dataSet.labelsAndExamples, dataSet.labelsAndExamples))
   println(result)
+  //models.map(pipeline(dataSet.exerciseVsSlacking, dataSet.exerciseVsSlacking))
 
 }

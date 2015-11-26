@@ -53,36 +53,29 @@ trait ExerciseDataSet {
 
 }
 
-class SyntheticExerciseDataSet(numClasses: Int, numExamples: Int) extends ExerciseDataSet {
+class CuratedExerciseDataSet(directory: File) extends ExerciseDataSet {
   import ExerciseDataSet._
 
-  override lazy val labelsAndExamples: DataSet = {
-    val exampleSamples = 400
-    val exampleDimensions = 3
-
-    val examples = Nd4j.create(numExamples, exampleSamples * exampleDimensions)
-    val labels = Nd4j.create(numExamples, numClasses)
-    (0 until numExamples).foreach { row =>
-      val clazz = row % numClasses
-      val exampleValues = (0 until exampleSamples).flatMap { pos =>
-        val v = math.sin(clazz * pos / exampleSamples.toDouble) + (math.random * 0.1)
-        Array(v.toFloat, v.toFloat, v.toFloat)
-      }
-      val example = Nd4j.create(exampleValues.toArray)
-      val label = Nd4j.create((0 until numClasses).map { c => if (c == clazz) 1.toFloat else 0.toFloat }.toArray)
-
-      labels.putRow(row, label)
-      examples.putRow(row, example)
+  private def smoothi(collection: Array[Float], width: Int): Unit = {
+    def average(xs: Array[Float]): Float = {
+      xs.sum / xs.length.toFloat
     }
 
-    DataSet(Labels((0 until labels.rows()).map(_.toString).toList), 1200, (examples, labels))
+    var x: Int = width / 2
+    collection.sliding(width).foreach { neighbours => collection(x) = average(neighbours); x += 1 }
   }
 
-  override def exerciseVsSlacking: DataSet = ???
-}
+  private def preprocess(samples: List[Array[Float]]): INDArray = {
+    val xs = samples.map(_.apply(0)).toArray
+    val ys = samples.map(_.apply(1)).toArray
+    val zs = samples.map(_.apply(2)).toArray
 
-class CuratedExerciseDataSet(directory: File, multiplier: Int = 1) extends ExerciseDataSet {
-  import ExerciseDataSet._
+    smoothi(xs, 3)
+    smoothi(ys, 3)
+    smoothi(zs, 3)
+
+    Nd4j.create(xs ++ ys ++ zs)
+  }
 
   private def loadFilesInDirectory(directory: File)
                                   (labelTransform: String ⇒ Option[String]): DataSet = {
@@ -116,11 +109,9 @@ class CuratedExerciseDataSet(directory: File, multiplier: Int = 1) extends Exerc
         val labelVector = Nd4j.create(labels.indices.map { l ⇒ if (l == labelIndex) 1.toFloat else 0.toFloat }.toArray)
         samples.sliding(windowSize, windowStep).flatMap { window ⇒
           if (window.size == windowSize) {
-            (0 until multiplier).map { i ⇒
-              val samples = window.flatten.map { v ⇒ if (i == 0) v else v + (math.random * 0.1).toFloat }
-              labelVector → Nd4j.create(samples.toArray)
-            }
-          } else Nil
+            val samples = preprocess(window)
+            Some(labelVector → samples)
+          } else None
         }
     })
     val examplesMatrix = Nd4j.create(examplesAndLabelVectors.size, windowSize * windowDimension)
@@ -134,8 +125,11 @@ class CuratedExerciseDataSet(directory: File, multiplier: Int = 1) extends Exerc
     DataSet(Labels(labels), 1200, (examplesMatrix, labelsMatrix))
   }
 
-  override def labelsAndExamples: DataSet = loadFilesInDirectory(directory) { label ⇒
-    if (label.isEmpty) None else Some(label)
+  override def labelsAndExamples: DataSet = loadFilesInDirectory(directory) {
+    case "" => None
+    case "triceps-dips" => None
+    case "dumbbell-bench-press" => None
+    case x => Some(x)
   }
 
   override def exerciseVsSlacking: DataSet = loadFilesInDirectory(directory) { label ⇒

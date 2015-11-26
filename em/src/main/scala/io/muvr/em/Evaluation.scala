@@ -39,7 +39,7 @@ case class ConfusionMatrix(labelCount: Int) {
     */
   def toPrettyString(labels: Labels): String = {
     val sb = new StringBuilder()
-    val labelWidth = labels.labels.map(_.length).max + 2
+    val labelWidth = math.max(labels.labels.map(_.length).max + 2, 10)
     implicit class LabelStringOps(s: String) {
       lazy val labelText: String = s.padTo(labelWidth, " ").take(labelWidth).mkString
     }
