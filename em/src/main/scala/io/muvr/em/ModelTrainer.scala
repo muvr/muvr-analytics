@@ -73,7 +73,7 @@ object ModelTrainer extends App {
 
   val dataSet = new CuratedExerciseDataSet(directory = new File(s"$rootDirectory/train/$datasetName"))
 
-  val models: List[Model] = List(MLP.deepModel, MLP.shallowModel, DBN.model)
+  val models: List[Model] = List(MLP.shallowModel, MLP.deepModel, DBN.model)
 
   val result = models.map(pipeline(dataSet.labelsAndExamples, dataSet.labelsAndExamples))
   println(result)
