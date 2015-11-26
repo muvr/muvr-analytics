@@ -4,7 +4,7 @@ import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 
 object Model {
   type Id = String
-  type Constructor = (Int, Int) => MultiLayerNetwork
+  type Constructor = (Int, Int) ⇒ MultiLayerNetwork
 }
 /**
   * Model details

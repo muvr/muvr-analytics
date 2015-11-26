@@ -8,7 +8,7 @@ object Implicits {
     def maxf: (Int, Float) = {
       val zero: (Int, Float) = (0, 0)
       (0 until x.columns()).foldLeft(zero) {
-        case ((i, v), column) =>
+        case ((i, v), column) ⇒
           val cv = x.getFloat(column)
           if (cv > v) (column, cv) else (i, v)
       }

@@ -96,10 +96,12 @@ class CuratedExerciseDataSet(directory: File, multiplier: Int = 1) extends Exerc
       Source.fromFile(file).getLines().toList.flatMap { line ⇒
         line.split(",", -1) match {
           case Array(x, y, z, label, _, _, _) ⇒
+            /** convert-clip-norm the string ``s`` into a ``Float``, normalize to 20 m/s*s, clip to (-1, 1) */
             def ccn(s: String): Float = {
               val x = s.toFloat / norm
               if (x > 1) 1 else if (x < -1) -1 else x
             }
+            // only take the labels for which ``labelTransform`` returns ``Some``
             labelTransform(label).map(label ⇒ label → Array(ccn(x), ccn(y), ccn(z)))
           case _ ⇒
             None
