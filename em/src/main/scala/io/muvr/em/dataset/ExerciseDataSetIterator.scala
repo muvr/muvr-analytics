@@ -71,6 +71,18 @@ object ExerciseDataSetFile {
     smoothi(zs, 5)
   }
 
+  /**
+    * Extract the labels from the CSV lines in ``lines``
+    * @param lines the lines in the file
+    * @return the labels
+    */
+  def extractLabels(lines: Array[String]): Array[String] = {
+    lines.flatMap { _.split(",", -1) match {
+      case Array(_, _, _, label, _, _, _) ⇒ Some(label)
+      case _ ⇒ None
+    }}
+  }
+
   def parse(lines: Array[String])(labelTransform: String ⇒ Option[String]): List[(String, Array[Array[Float]])] = {
     /** convert-clip-norm the string ``s`` into a ``Float``, normalize to 20 m/s*s, clip to (-1, 1) */
     def ccn(s: String): Float = {
