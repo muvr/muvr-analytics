@@ -82,7 +82,7 @@ object ExerciseDataSetFile {
     lines.flatMap { _.split(",", -1) match {
         case Array(x, y, z, label, _, _, _) ⇒
           // only take the labels for which ``labelTransform`` returns ``Some``
-          labelTransform(label).map(label ⇒ label → Array(ccn(x), ccn(y), ccn(z)))
+          labelTransform(label).map(label ⇒ (label, Array(ccn(x), ccn(y), ccn(z))))
         case _ ⇒
           None
       }

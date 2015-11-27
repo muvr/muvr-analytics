@@ -28,7 +28,7 @@ object Dependency {
   object spark {
     private val core = "org.apache.spark" %% "spark-core" % "1.5.2"
 
-    val all = Seq(core)
+    val all = Seq(core % "provided")
   }
 
   object dl4j {
@@ -61,6 +61,7 @@ object Dependencies {
 object EmBuild extends Build {
   import Resolvers._
   import BuildSettings._
+  import sbtassembly.AssemblyKeys._
 
   val excludeSigFilesRE = """META-INF/.*\.(SF|DSA|RSA)""".r
   lazy val em = Project(
@@ -76,6 +77,7 @@ object EmBuild extends Build {
       // For the Hadoop variants to work, we must rebuild the package before
       // running, so we make it a dependency of run.
       (run in Compile) <<= (run in Compile) dependsOn (packageBin in Compile),
+      assemblyOption in assembly := (assemblyOption in assembly).value.copy(includeScala = false),
       libraryDependencies ++= Dependencies.em,
       excludeFilter in unmanagedSources := (HiddenFileFilter || "*-script.scala"),
       unmanagedResourceDirectories in Compile += baseDirectory.value / "conf",

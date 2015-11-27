@@ -46,7 +46,7 @@ object ModelTrainerMain {
         samples.sliding(windowSize, windowStep).flatMap { window ⇒
           if (window.length == windowSize) {
             val samples = window.flatten
-            Some(labelVector → Nd4j.create(samples))
+            Some((labelVector, Nd4j.create(samples)))
           } else None
         }
     })
