@@ -1,11 +1,6 @@
 package io.muvr.em.dataset
 
-import java.io.File
-
 import org.nd4j.linalg.api.ndarray.INDArray
-import org.nd4j.linalg.factory._
-
-import scala.io.Source
 
 /**
   * The labels

@@ -23,33 +23,43 @@ object Resolvers {
 
 }
 
-// We don't actually use all these dependencies, but they are shown for the
-// examples that explicitly use Hadoop.
 object Dependency {
-  private object versions {
-    val spark        = "1.5.2"
-    val nd4j         = "0.4-rc3.7"
-    val dl4j         = "0.4-rc3.6"
-    val canova       = "0.0.0.12"
+
+  object spark {
+    private val core = "org.apache.spark" %% "spark-core" % "1.5.2"
+
+    val all = Seq(core)
   }
 
-  val sparkCore      = "org.apache.spark"  %% "spark-core"      % versions.spark
-  val sparkRepl      = "org.apache.spark"  %% "spark-repl"      % versions.spark
+  object dl4j {
+    private val nd4jVersion         = "0.4-rc3.6"
+    private val dl4jVersion         = "0.4-rc3.6"
 
-  val dl4jCore       = "org.deeplearning4j" % "deeplearning4j-core" % versions.dl4j
-  val nd4jX86        = "org.nd4j"           % "nd4j-x86"            % versions.nd4j
-  val nd4jCuda       = "org.nd4j"           % "nd4j-jcublas-7.5"    % versions.nd4j
+    private val dl4jCore            = "org.deeplearning4j"                % "deeplearning4j-core"     % dl4jVersion intransitive()
+    private val nd4jX86             = "org.nd4j"                          % "nd4j-x86"                % nd4jVersion intransitive()
+    private val jacksonDF           = "com.fasterxml.jackson.dataformat"  % "jackson-dataformat-yaml" % "2.5.4" intransitive()
+    private val nd4jApi             = "org.nd4j"                          % "nd4j-api"                % nd4jVersion intransitive()
+    private val nd4jBytebuddy       = "org.nd4j"                          % "nd4j-bytebuddy"          % nd4jVersion intransitive()
+    private val bytebuddy           = "net.bytebuddy"                     % "byte-buddy"              % "0.7.2" intransitive()
+    private val jblas               = "org.jblas"                         % "jblas"                   % "1.2.4" intransitive()
+    private val springFrameworkCore = "org.springframework"               % "spring-core"             % "3.2.5.RELEASE" intransitive()
+    private val netlib              = "com.github.fommil.netlib"          % "all"                     % "1.1.2" pomOnly()
+    private val reflections         = "org.reflections"                   % "reflections"             % "0.9.9-RC1" intransitive()
+    private val javassist           = "org.javassist"                     % "javassist"               % "3.19.0-GA" intransitive()
+
+    val all = Seq(dl4jCore, nd4jApi, nd4jX86, jblas, netlib, nd4jBytebuddy, reflections, javassist, springFrameworkCore, jacksonDF, bytebuddy)
+  }
+
 }
 
 object Dependencies {
   import Dependency._
 
-  val em = Seq(dl4jCore, nd4jX86, nd4jCuda, sparkCore)
+  val em = spark.all ++ dl4j.all
 }
 
 object EmBuild extends Build {
   import Resolvers._
-  import Dependencies._
   import BuildSettings._
 
   val excludeSigFilesRE = """META-INF/.*\.(SF|DSA|RSA)""".r
@@ -63,9 +73,6 @@ object EmBuild extends Build {
       // runScriptSetting,
       resolvers := allResolvers,
       exportJars := true,
-      dependencyOverrides ++= Set(
-        "com.fasterxml.jackson.core" % "jackson-databind" % "2.4.4"
-      ),
       // For the Hadoop variants to work, we must rebuild the package before
       // running, so we make it a dependency of run.
       (run in Compile) <<= (run in Compile) dependsOn (packageBin in Compile),
