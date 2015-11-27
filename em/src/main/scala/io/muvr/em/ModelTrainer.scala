@@ -69,7 +69,7 @@ class ModelTrainer(persistor: ModelPersistor) {
     println(cm.toPrettyString(testDataSet.labels))
     println()
 
-    (pm, 2 * cm.accuracy() + cm.f1() + 0.5 * cm.precision())
+    (pm, 5 * cm.accuracy() + cm.f1() + cm.precision() + cm.recall())
   }
 
   def execute(tag: String, train: ExerciseDataSet.DataSet, test: ExerciseDataSet.DataSet): (PersistedModel[File], Double) ={
