@@ -4,35 +4,20 @@ import java.io.File
 
 import io.muvr.em.dataset.ExerciseDataSet.DataSet
 import io.muvr.em.dataset.{Labels, ExerciseDataSetFile}
+import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 import org.nd4j.linalg.factory.Nd4j
 
 object ModelTrainerMain {
 
-  def main(args: Array[String]): Unit = {
-    val master   = "local"
-    val model    = "arms"
-    val labelTransform: (String ⇒ Option[String]) = {
-      case "" ⇒ None
-      case "triceps-dips" ⇒ None
-      case "dumbbell-bench-press" ⇒ None
-      case x ⇒ Some(x)
-    }
-
-    val name = "Train"
-    val conf = new SparkConf().
-      setMaster(master).
-      setAppName(name).
-      set("spark.app.id", name)
-    val sc = new SparkContext(conf)
-    val path = s"/Users/janmachacek/Muvr/muvr-open-training-data/train/$model"
-    val outputPath = new File("/Users/janmachacek/Muvr/muvr-open-training-data/models")
-    outputPath.mkdirs()
-
-    val fileContents = sc.wholeTextFiles(path)
-    // each entry contains the label => Array of x,y,z acceleration values
-    // Array[Map[String, Array[Array[Float]]]]
-    val fileLabelsAndExamples = fileContents.map { case (_, text) ⇒ ExerciseDataSetFile.parse(text.split("\n"))(labelTransform) }.collect()
+  /**
+    * Transform RDD of CSV Muvr file contents into a DataSet
+    * @param files the file contents
+    * @param labelTransform the label transform function
+    * @return the local ``DataSet``
+    */
+  private def dataSet(files: RDD[(String, String)])(labelTransform: String ⇒ Option[String]): DataSet = {
+    val fileLabelsAndExamples = files.map { case (_, text) ⇒ ExerciseDataSetFile.parse(text.split("\n"))(labelTransform) }.collect()
 
     // all labels is the distinct set of all keys in all the maps
     val labels = fileLabelsAndExamples.flatMap(_.map(_._1)).distinct
@@ -59,8 +44,37 @@ object ModelTrainerMain {
         labelsMatrix.putRow(i, label)
     }
 
-    val ds = DataSet(Labels(labels.toList), windowSize * windowDimension, (examplesMatrix, labelsMatrix))
-    val best = new ModelTrainer(new ModelPersistor(outputPath)).execute(model, ds, ds)
+    DataSet(Labels(labels.toList), windowSize * windowDimension, (examplesMatrix, labelsMatrix))
+  }
+
+  /**
+    * Starts the Spark app
+    * @param args the args
+    */
+  def main(args: Array[String]): Unit = {
+    val master   = "local"
+    val model    = "arms"
+    val labelTransform: (String ⇒ Option[String]) = {
+      case "" ⇒ None
+      case "triceps-dips" ⇒ None
+      case "dumbbell-bench-press" ⇒ None
+      case x ⇒ Some(x)
+    }
+
+    val name = "Train"
+    val conf = new SparkConf().
+      setMaster(master).
+      setAppName(name).
+      set("spark.app.id", name)
+    val sc = new SparkContext(conf)
+    val trainPath = s"/Users/janmachacek/Muvr/muvr-open-training-data/train/$model"
+    val testPath = s"/Users/janmachacek/Muvr/muvr-open-training-data/train/$model"
+    val outputPath = new File("/Users/janmachacek/Muvr/muvr-open-training-data/models"); outputPath.mkdirs()
+    val trainer = new ModelTrainer(new ModelPersistor(outputPath))
+
+    val train = dataSet(sc.wholeTextFiles(trainPath))(labelTransform)
+    val test  = dataSet(sc.wholeTextFiles(testPath))(labelTransform)
+    val best  = trainer.execute(model, train, test)
     println(best)
   }
 }

@@ -11,7 +11,7 @@ class ModelTrainer(persistor: ModelPersistor) {
 
 
   /** The various model templates */
-  private val modelTemplates: List[ModelTemplate] = List(MLP.shallowModel, MLP.shallowModel, MLP.shallowModel, MLP.shallowModel)
+  private val modelTemplates: List[ModelTemplate] = List.fill(10)(MLP.shallowModel)
 
   /**
     * Train the model created by ``modelConstructor`` on the given ``dataSet``, with some specific ``modelName``
