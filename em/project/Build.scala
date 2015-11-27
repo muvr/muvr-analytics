@@ -46,8 +46,9 @@ object Dependency {
     private val netlib              = "com.github.fommil.netlib"          % "all"                     % "1.1.2" pomOnly()
     private val reflections         = "org.reflections"                   % "reflections"             % "0.9.9-RC1" intransitive()
     private val javassist           = "org.javassist"                     % "javassist"               % "3.19.0-GA" intransitive()
+    private val guava               = "com.google.guava"                  % "guava"                   % "18.0" intransitive()
 
-    val all = Seq(dl4jCore, nd4jApi, nd4jX86, jblas, netlib, nd4jBytebuddy, reflections, javassist, springFrameworkCore, jacksonDF, bytebuddy)
+    val all = Seq(dl4jCore, nd4jApi, nd4jX86, jblas, netlib, nd4jBytebuddy, reflections, javassist, springFrameworkCore, jacksonDF, bytebuddy, guava)
   }
 
 }
