@@ -1,4 +1,4 @@
-package io.muvr.em.models
+package io.muvr.em.model
 
 import java.util.UUID
 

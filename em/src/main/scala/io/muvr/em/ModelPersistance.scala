@@ -8,54 +8,36 @@ import org.nd4j.linalg.factory.Nd4j
 
 import scala.io.Source
 
-/**
-  * Contains methods that save the models
-  */
-object ModelPersistance {
+case class PersistedModel[Handle](configuration: Handle, params: Handle, labels: Handle, evaluation: Handle, confusionMatrix: Handle)
 
-  /**
-    * Provides mechanism to save a model
-    * @param model the model
-    */
-  final implicit class MultiLayerNetworkPersistence(model: MultiLayerNetwork) {
+class ModelPersistor(rootDirectory: File) {
 
-    def save(params: OutputStream, conf: OutputStream): Unit = {
-      Nd4j.write(model.params(), new DataOutputStream(params))
-      conf.write(model.conf().toYaml.getBytes("UTF-8"))
-      conf.close()
-    }
-
-    def save(rootDirectory: String, name: String): Unit =
-      save(new FileOutputStream(s"$rootDirectory/models/$name.params"),
-           new FileOutputStream(s"$rootDirectory/models/$name.conf"))
+  def getOutputStream(name: String): (OutputStream, File) = {
+    val file = new File(rootDirectory, name)
+    (new FileOutputStream(file), file)
   }
 
-  final implicit class LabelsPersistence(labels: Labels) {
+  def persist(id: ModelTemplate.Id, model: MultiLayerNetwork, labels: Labels, modelEvaluation: ModelEvaluation): PersistedModel[File] = {
+    val (paramsOut, paramsA) = getOutputStream(s"$id-params.raw")
+    Nd4j.write(model.params(), new DataOutputStream(paramsOut))
 
-    def save(rootDirectory: String, name: String): Unit = {
-      val os = new FileOutputStream(s"$rootDirectory/models/$name.labels")
-      os.write(labels.labels.mkString("\n").getBytes("UTF-8"))
-      os.close()
-    }
+    val (configurationOut, configurationA) = getOutputStream(s"$id-configuration.json")
+    configurationOut.write(model.conf().toJson.getBytes("UTF-8"))
+    configurationOut.close()
 
+    val (labelsOut, labelsA) = getOutputStream(s"$id-labels.txt")
+    labelsOut.write(labels.labels.mkString("\n").getBytes("UTF-8"))
+    labelsOut.close()
+
+    val (confusionMatrixOut, confusionMatrixA) = getOutputStream(s"$id-cm.csv")
+    modelEvaluation.saveConfusionMatrixAsCSV(labels, new BufferedWriter(new OutputStreamWriter(confusionMatrixOut)))
+    confusionMatrixOut.close()
+
+    val (evaluationOut, evaluationA) = getOutputStream(s"$id-evaluation.csv")
+    modelEvaluation.saveEvaluationAsCSV(new BufferedWriter(new OutputStreamWriter(evaluationOut)))
+    evaluationOut.close()
+
+    PersistedModel(configurationA, paramsA, labelsA, evaluationA, confusionMatrixA)
   }
-
-  final implicit class ConfusionMatrixPersistence(cm: ModelEvaluation) {
-    def save(rootDirectory: String, name: String, labels: Labels): Unit = {
-      val os = new FileOutputStream(s"$rootDirectory/models/$name-cm.csv")
-      cm.saveAsCsv(labels, new BufferedWriter(new OutputStreamWriter(os)))
-      os.close()
-    }
-  }
-
-  def load(params: InputStream, conf: InputStream): MultiLayerNetwork = {
-    val loadedParams = Nd4j.read(params)
-    val loadedConf = Source.fromInputStream(conf, "UTF-8").mkString
-    new MultiLayerNetwork(loadedConf, loadedParams)
-  }
-
-  def load(rootDirectory: String, name: String): MultiLayerNetwork =
-    load(new FileInputStream(s"$rootDirectory/models/$name.params"),
-         new FileInputStream(s"$rootDirectory/models/$name.conf"))
 
 }

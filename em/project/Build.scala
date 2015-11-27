@@ -28,31 +28,23 @@ object Resolvers {
 object Dependency {
   private object versions {
     val spark        = "1.5.2"
-    val scalaTest    = "2.2.4"
-    val scalaCheck   = "1.12.2"
     val nd4j         = "0.4-rc3.7"
     val dl4j         = "0.4-rc3.6"
     val canova       = "0.0.0.12"
   }
 
   val sparkCore      = "org.apache.spark"  %% "spark-core"      % versions.spark
-  val sparkStreaming = "org.apache.spark"  %% "spark-streaming" % versions.spark
-  val sparkSQL       = "org.apache.spark"  %% "spark-sql"       % versions.spark
-  val sparkHiveSQL   = "org.apache.spark"  %% "spark-hive"      % versions.spark
   val sparkRepl      = "org.apache.spark"  %% "spark-repl"      % versions.spark
 
   val dl4jCore       = "org.deeplearning4j" % "deeplearning4j-core" % versions.dl4j
   val nd4jX86        = "org.nd4j"           % "nd4j-x86"            % versions.nd4j
   val nd4jCuda       = "org.nd4j"           % "nd4j-jcublas-7.5"    % versions.nd4j
-
-  val scalaTest      = "org.scalatest"     %% "scalatest"       % versions.scalaTest  % "test"
-  val scalaCheck     = "org.scalacheck"    %% "scalacheck"      % versions.scalaCheck % "test"
 }
 
 object Dependencies {
   import Dependency._
 
-  val em = Seq(dl4jCore, nd4jX86)
+  val em = Seq(dl4jCore, nd4jX86, nd4jCuda, sparkCore)
 }
 
 object EmBuild extends Build {
@@ -71,6 +63,9 @@ object EmBuild extends Build {
       // runScriptSetting,
       resolvers := allResolvers,
       exportJars := true,
+      dependencyOverrides ++= Set(
+        "com.fasterxml.jackson.core" % "jackson-databind" % "2.4.4"
+      ),
       // For the Hadoop variants to work, we must rebuild the package before
       // running, so we make it a dependency of run.
       (run in Compile) <<= (run in Compile) dependsOn (packageBin in Compile),

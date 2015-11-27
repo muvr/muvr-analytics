@@ -170,11 +170,11 @@ case class ModelEvaluation(labelCount: Int) {
   }
 
   /**
-    * Save this CM into a CSV file
+    * Save this CM into a CSV output
     * @param labels the labels
     * @param out the output buffer
     */
-  def saveAsCsv(labels: Labels, out: BufferedWriter): Unit = {
+  def saveConfusionMatrixAsCSV(labels: Labels, out: BufferedWriter): Unit = {
     out.write("-,")
     labels.labels.zipWithIndex.foreach { case (label, i) ⇒
       out.write( s""""$label"""")
@@ -191,6 +191,18 @@ case class ModelEvaluation(labelCount: Int) {
       }
       out.write("\n")
     }
+    out.close()
+  }
+
+  /**
+    * Save the evaluation details into a CSV output
+    * @param out the output buffer
+    */
+  def saveEvaluationAsCSV(out: BufferedWriter): Unit = {
+    out.write("accuracy,"); out.write(accuracy().toString); out.write("\n")
+    out.write("precision,"); out.write(precision().toString); out.write("\n")
+    out.write("recall,"); out.write(recall().toString); out.write("\n")
+    out.write("f1,"); out.write(f1().toString); out.write("\n")
     out.close()
   }
 
