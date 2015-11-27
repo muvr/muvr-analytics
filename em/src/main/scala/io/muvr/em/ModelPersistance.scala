@@ -40,7 +40,7 @@ object ModelPersistance {
 
   }
 
-  final implicit class ConfusionMatrixPersistence(cm: ConfusionMatrix) {
+  final implicit class ConfusionMatrixPersistence(cm: ModelEvaluation) {
     def save(rootDirectory: String, name: String, labels: Labels): Unit = {
       val os = new FileOutputStream(s"$rootDirectory/models/$name-cm.csv")
       cm.saveAsCsv(labels, new BufferedWriter(new OutputStreamWriter(os)))

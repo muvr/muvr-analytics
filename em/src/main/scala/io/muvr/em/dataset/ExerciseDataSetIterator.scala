@@ -70,9 +70,9 @@ class CuratedExerciseDataSet(directory: File) extends ExerciseDataSet {
     val ys = samples.map(_.apply(1)).toArray
     val zs = samples.map(_.apply(2)).toArray
 
-    smoothi(xs, 3)
-    smoothi(ys, 3)
-    smoothi(zs, 3)
+    smoothi(xs, 5)
+    smoothi(ys, 5)
+    smoothi(zs, 5)
 
     Nd4j.create(xs ++ ys ++ zs)
   }

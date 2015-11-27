@@ -7,10 +7,41 @@ import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.nd4j.linalg.api.ndarray.INDArray
 
 /**
-  * The confusion matrix
+  * Companion for evaluating models
+  */
+object ModelEvalutaion {
+
+  import INDArrayImplicits._
+
+  /**
+    * Evaluate the given ``model`` with the ``examples`` and matching ``labels``.
+    *
+    * @param model the model to evaluate
+    * @param examples the examples
+    * @param labels the labels for the examples
+    * @return the evaluation summary
+    */
+  def apply(model: MultiLayerNetwork, examples: INDArray, labels: INDArray): ModelEvaluation = {
+    val eval = ModelEvaluation(labels.columns())
+
+    (0 until examples.rows()).foreach { row ⇒
+      val example = examples.getRow(row)
+      val (ai, _) = labels.getRow(row).maxf
+      val (pi, _) = model.output(example).maxf
+
+      eval +=(ai, pi)
+    }
+
+    eval
+  }
+
+}
+
+/**
+  * The model evaluation
   * @param labelCount the number of labels
   */
-case class ConfusionMatrix(labelCount: Int) {
+case class ModelEvaluation(labelCount: Int) {
   private val entries: Array[Array[Int]] = Array.fill(labelCount)(Array.fill(labelCount)(0))
   private var predictions: Int = 0
   private var truePositives: Map[Int, Int] = Map()
@@ -203,22 +234,3 @@ case class ConfusionMatrix(labelCount: Int) {
 
 }
 
-object Evaluation {
-
-  import Implicits._
-
-  def evaluate(model: MultiLayerNetwork, examples: INDArray, labels: INDArray): ConfusionMatrix = {
-    val cm = ConfusionMatrix(labels.columns())
-
-    (0 until examples.rows()).foreach { row ⇒
-      val example = examples.getRow(row)
-      val (ai, _) = labels.getRow(row).maxf
-      val (pi, _) = model.output(example).maxf
-
-      cm +=(ai, pi)
-    }
-
-    cm
-  }
-
-}

@@ -2,7 +2,7 @@ package io.muvr.em.models
 
 import java.util.UUID
 
-import io.muvr.em.Model
+import io.muvr.em.ModelTemplate
 import org.deeplearning4j.nn.api.OptimizationAlgorithm
 import org.deeplearning4j.nn.conf.NeuralNetConfiguration
 import org.deeplearning4j.nn.conf.distribution.UniformDistribution
@@ -14,7 +14,7 @@ import org.nd4j.linalg.lossfunctions.LossFunctions
 
 object MLP {
 
-  def shallowModel: Model = Model("smlp@" + UUID.randomUUID().toString, newShallowModel)
+  def shallowModel: ModelTemplate = ModelTemplate("smlp@" + UUID.randomUUID().toString, newShallowModel)
 
   private def newShallowModel(numInputs: Int, numOutputs: Int): MultiLayerNetwork = {
     val distribution: UniformDistribution = new UniformDistribution(-0.1, 0.1)
@@ -49,7 +49,7 @@ object MLP {
         .build())
       .layer(2, new DenseLayer.Builder()
         .nIn(300)
-        .nOut(90)
+        .nOut(120)
         .dropOut(0.9)
         .activation("tanh")
         .weightInit(WeightInit.XAVIER)
@@ -57,7 +57,7 @@ object MLP {
         .dist(distribution)
         .build())
       .layer(3, new OutputLayer.Builder(LossFunctions.LossFunction.SQUARED_LOSS)
-        .nIn(90)
+        .nIn(120)
         .nOut(numOutputs)
         .biasInit(1.0)
         .dropOut(0.9)
