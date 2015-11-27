@@ -32,8 +32,6 @@ object ModelTrainerMain {
     val fileContents = sc.wholeTextFiles(path)
     // each entry contains the label => Array of x,y,z acceleration values
     // Array[Map[String, Array[Array[Float]]]]
-    // val labels = fileContents.map { case (_, text) ⇒ ExerciseDataSetFile.extractLabels(text.split("\n")) }.distinct().collect()
-
     val fileLabelsAndExamples = fileContents.map { case (_, text) ⇒ ExerciseDataSetFile.parse(text.split("\n"))(labelTransform) }.collect()
 
     // all labels is the distinct set of all keys in all the maps
