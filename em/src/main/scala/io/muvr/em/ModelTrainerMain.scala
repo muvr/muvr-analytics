@@ -13,6 +13,12 @@ object ModelTrainerMain {
   private val numInputs = 1200
   private val modelTemplates: List[ModelTemplate] = List.fill(1)(MLP.shallowModel)
 
+  /**
+    * Parses the contents of CSV files into a collected list of labels and RDDs of examples and labels
+    * @param files the RDD with file contents
+    * @param labelTransform the label transformation to apply
+    * @return distinct labels and RDD of (examples, labels)
+    */
   private def parse(files: RDD[(String, String)], labelTransform: String ⇒ Option[String]): (Labels, RDD[(INDArray, INDArray)]) = {
     val windowStep = 50
     // parse all files
@@ -35,6 +41,11 @@ object ModelTrainerMain {
     (Labels(labelNames), examplesAndLabels)
   }
 
+  /**
+    * Converts sequence of a vector of examples and vector of labels into matrix of examples & labels
+    * @param batch the batch of example and label vectors
+    * @return the matrix of examples and labels
+    */
   private def batchToExamplesAndLabelsMatrix(batch: Seq[(INDArray, INDArray)]): (INDArray, INDArray) = {
     val (_, labels) = batch.head
     val examplesMatrix = Nd4j.create(batch.length, numInputs)
@@ -46,8 +57,21 @@ object ModelTrainerMain {
     (examplesMatrix, labelsMatrix)
   }
 
-  private def x(trainFiles: RDD[(String, String)], testFiles: RDD[(String, String)], labelTransform: String ⇒ Option[String],
-               persistor: ModelPersistor)(modelTemplate: ModelTemplate) = {
+  /**
+    * The learning pipeline constructs the model from the ``modelTemplate``, supplying the
+    * right number of inputs and outputs; then fits the model on all training data, then
+    * evaluates the model's performance on the test data. Finally, it persist the model
+    * and evaluation.
+    *
+    * @param trainFiles the names and content of the training files (CSVs)
+    * @param testFiles the names and content of the test files (CSVs)
+    * @param labelTransform the label transform to apply
+    * @param persistor the persistor that will store the model and its evaluation
+    * @param modelTemplate the model template
+    */
+  private def pipeline(trainFiles: RDD[(String, String)], testFiles: RDD[(String, String)],
+                       labelTransform: String ⇒ Option[String],
+                       persistor: ModelPersistor)(modelTemplate: ModelTemplate): Unit = {
     val batchSize = 50000
     val (testLabels, testExamplesAndLabels) = parse(testFiles, labelTransform)
     val (trainLabels, trainExamplesAndLabels) = parse(trainFiles, labelTransform)
@@ -66,20 +90,17 @@ object ModelTrainerMain {
       .toLocalIterator
       .grouped(batchSize)
       .map(batchToExamplesAndLabelsMatrix)
-      .map { case (examples, labels) ⇒ (id, ModelEvaluation(model, examples, labels ))}
+      .map { case (examples, labels) ⇒ ModelEvaluation(model, examples, labels ) }
 
     // fold evaluation results
-    val modelEvaluations = batchModelEvaluations.foldLeft(Map[ModelTemplate.Id, ModelEvaluation]()) { case (result, (id, modelEvaluation)) ⇒
-      result.updated(id, result.get(id).map(_ += modelEvaluation).getOrElse(modelEvaluation))
-    }
+    val evaluation = batchModelEvaluations.foldLeft(ModelEvaluation(testLabels.length))(_ + _)
 
     // save
-    val Some(evaluation) = modelEvaluations.get(id)
+    persistor.persist(id, model, testLabels, evaluation)
 
+    // eyeball result
     println(s"Model $id")
     println(evaluation.toPrettyString(testLabels))
-
-    persistor.persist(id, model, testLabels, evaluation)
   }
 
   /**
@@ -107,6 +128,6 @@ object ModelTrainerMain {
     val outputPath = new File("/Users/janmachacek/Muvr/muvr-open-training-data/models"); outputPath.mkdirs()
     val persistor = new ModelPersistor(outputPath)
 
-    modelTemplates.foreach(x(sc.wholeTextFiles(trainPath), sc.wholeTextFiles(testPath), labelTransform, persistor))
+    modelTemplates.foreach(pipeline(sc.wholeTextFiles(trainPath), sc.wholeTextFiles(testPath), labelTransform, persistor))
   }
 }

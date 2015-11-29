@@ -61,7 +61,7 @@ case class ModelEvaluation(labelCount: Int) {
 
   }
 
-  def +=(that: ModelEvaluation): ModelEvaluation = {
+  def +(that: ModelEvaluation): ModelEvaluation = {
     that.entries.zipWithIndex.foreach { case (row, i) ⇒
       row.zipWithIndex.foreach { case (v, j) ⇒
         this.entries(i)(j) += v
