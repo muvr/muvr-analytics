@@ -108,11 +108,5 @@ object ModelTrainerMain {
     val persistor = new ModelPersistor(outputPath)
 
     modelTemplates.foreach(x(sc.wholeTextFiles(trainPath), sc.wholeTextFiles(testPath), labelTransform, persistor))
-
-//    val trainer = new ModelTrainer()
-//    val train = dataSet(sc.wholeTextFiles(trainPath))(labelTransform)
-//    val test  = dataSet(sc.wholeTextFiles(testPath))(labelTransform)
-//    val best  = trainer.execute(model, train, test)
-//    println(best)
   }
 }

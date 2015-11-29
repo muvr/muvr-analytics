@@ -2,7 +2,7 @@ package io.muvr.em.model
 
 import java.util.UUID
 
-import io.muvr.em.ModelTemplate
+import io.muvr.em.{ModelPreprocessing, ModelTemplate}
 import org.deeplearning4j.nn.api.OptimizationAlgorithm
 import org.deeplearning4j.nn.conf.NeuralNetConfiguration
 import org.deeplearning4j.nn.conf.distribution.UniformDistribution
@@ -14,7 +14,7 @@ import org.nd4j.linalg.lossfunctions.LossFunctions
 
 object MLP {
 
-  def shallowModel: ModelTemplate = ModelTemplate("smlp@" + UUID.randomUUID().toString, newShallowModel)
+  def shallowModel: ModelTemplate = ModelTemplate("smlp@" + UUID.randomUUID().toString, newShallowModel, ModelPreprocessing.None)
 
   private def newShallowModel(numInputs: Int, numOutputs: Int): MultiLayerNetwork = {
     val distribution: UniformDistribution = new UniformDistribution(-0.1, 0.1)
