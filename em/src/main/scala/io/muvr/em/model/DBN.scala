@@ -2,7 +2,7 @@ package io.muvr.em.model
 
 import java.util.Collections
 
-import io.muvr.em.ModelTemplate
+import io.muvr.em.{ModelPreprocessing, ModelTemplate}
 import org.deeplearning4j.nn.api.OptimizationAlgorithm
 import org.deeplearning4j.nn.conf.layers.{OutputLayer, RBM}
 import org.deeplearning4j.nn.conf.{GradientNormalization, NeuralNetConfiguration}
@@ -12,7 +12,7 @@ import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction
 
 object DBN {
 
-  val model: ModelTemplate = ModelTemplate("dbn", newModel)
+  val model: ModelTemplate = ModelTemplate("dbn", newModel, ModelPreprocessing.None)
 
   private def newModel(numInputs: Int, numOutputs: Int): MultiLayerNetwork = {
     val iterations = 10
