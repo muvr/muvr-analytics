@@ -11,7 +11,7 @@ import org.nd4j.linalg.factory.Nd4j
 
 object ModelTrainerMain {
   private val numInputs = 1200
-  private val modelTemplates: List[ModelTemplate] = List.fill(10)(MLP.shallowModel)
+  private val modelTemplates: List[ModelTemplate] = List.fill(1)(MLP.shallowModel)
 
   private def parse(files: RDD[(String, String)], labelTransform: String ⇒ Option[String]): (Labels, RDD[(INDArray, INDArray)]) = {
     val windowStep = 50
@@ -46,23 +46,21 @@ object ModelTrainerMain {
     (examplesMatrix, labelsMatrix)
   }
 
-  private def x(trainFiles: RDD[(String, String)], testFiles: RDD[(String, String)], modelTemplates: List[ModelTemplate], labelTransform: String ⇒ Option[String],
-               persistor: ModelPersistor) = {
+  private def x(trainFiles: RDD[(String, String)], testFiles: RDD[(String, String)], labelTransform: String ⇒ Option[String],
+               persistor: ModelPersistor)(modelTemplate: ModelTemplate) = {
     val batchSize = 500
     val (testLabels, testExamplesAndLabels) = parse(testFiles, labelTransform)
     val (trainLabels, trainExamplesAndLabels) = parse(trainFiles, labelTransform)
-    val models = modelTemplates.map(t ⇒ (t.id, t.modelConstructor(numInputs, trainLabels.length)))
+    val model = modelTemplate.modelConstructor(numInputs, trainLabels.length)
+    val id = modelTemplate.id
 
     // train
-    for {
-      (id, model) ← models
-      (examples, labels) = batchToExamplesAndLabelsMatrix(trainExamplesAndLabels.collect()) //.map(batchToExamplesAndLabelsMatrix)
-    } yield model.fit(examples, labels)
+    val (examples, labels) = batchToExamplesAndLabelsMatrix(trainExamplesAndLabels.collect())
+    model.fit(examples, labels)
 
     // evaluate
     val batchModelEvaluations = for {
-      (id, model) ← models
-      (examples, labels) = batchToExamplesAndLabelsMatrix(testExamplesAndLabels.collect()) // .collect().map(List(_)).map(batchToExamplesAndLabelsMatrix)
+      (examples, labels) ← testExamplesAndLabels.toLocalIterator.grouped(batchSize).map(batchToExamplesAndLabelsMatrix)
     } yield (id, ModelEvaluation(model, examples, labels))
 
     // fold evaluation results
@@ -71,14 +69,12 @@ object ModelTrainerMain {
     }
 
     // save
-    models.map { case (id, model) ⇒
-      val Some(evaluation) = modelEvaluations.get(id)
+    val Some(evaluation) = modelEvaluations.get(id)
 
-      println(s"Model $id")
-      println(evaluation.toPrettyString(testLabels))
+    println(s"Model $id")
+    println(evaluation.toPrettyString(testLabels))
 
-      persistor.persist(id, model, testLabels, evaluation)
-    }
+    persistor.persist(id, model, testLabels, evaluation)
   }
 
   /**
@@ -106,7 +102,7 @@ object ModelTrainerMain {
     val outputPath = new File("/Users/janmachacek/Muvr/muvr-open-training-data/models"); outputPath.mkdirs()
     val persistor = new ModelPersistor(outputPath)
 
-    x(sc.wholeTextFiles(trainPath), sc.wholeTextFiles(testPath), modelTemplates, labelTransform, persistor)
+    modelTemplates.foreach(x(sc.wholeTextFiles(trainPath), sc.wholeTextFiles(testPath), labelTransform, persistor))
 
 //    val trainer = new ModelTrainer()
 //    val train = dataSet(sc.wholeTextFiles(trainPath))(labelTransform)

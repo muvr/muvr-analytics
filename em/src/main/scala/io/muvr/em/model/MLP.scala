@@ -19,7 +19,7 @@ object MLP {
   private def newShallowModel(numInputs: Int, numOutputs: Int): MultiLayerNetwork = {
     val distribution: UniformDistribution = new UniformDistribution(-0.1, 0.1)
     val conf = new NeuralNetConfiguration.Builder()
-      .iterations(12)
+      .iterations(20)
       .optimizationAlgo(OptimizationAlgorithm.LINE_GRADIENT_DESCENT)
       .constrainGradientToUnitNorm(true)
       .learningRate(0.0001)

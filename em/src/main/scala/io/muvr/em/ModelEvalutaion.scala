@@ -44,10 +44,10 @@ object ModelEvaluation {
 case class ModelEvaluation(labelCount: Int) {
   private val entries: Array[Array[Int]] = Array.fill(labelCount)(Array.fill(labelCount)(0))
   private var predictions: Int = 0
-  private var truePositives: Map[Int, Int] = Map()
-  private var trueNegatives: Map[Int, Int] = Map()
-  private var falsePositives: Map[Int, Int] = Map()
-  private var falseNegatives: Map[Int, Int] = Map()
+  private var truePositives: Map[Int, Int] = (0 until labelCount).map((_, 0)).toMap
+  private var trueNegatives: Map[Int, Int] = (0 until labelCount).map((_, 0)).toMap
+  private var falsePositives: Map[Int, Int] = (0 until labelCount).map((_, 0)).toMap
+  private var falseNegatives: Map[Int, Int] = (0 until labelCount).map((_, 0)).toMap
 
   implicit class MapUpdates[K, V](m: Map[K, V]) {
 
@@ -56,7 +56,7 @@ case class ModelEvaluation(labelCount: Int) {
     }
 
     def merge(that: Map[K, V])(implicit n: Numeric[V]): Map[K, V] = {
-      m.map { case (label, count) ⇒ (label, n.plus(that.getOrElse(label, n.zero), count)) }
+      that.map { case (label, count) ⇒ (label, n.plus(m.getOrElse(label, n.zero), count)) }
     }
 
   }
@@ -67,10 +67,11 @@ case class ModelEvaluation(labelCount: Int) {
         this.entries(i)(j) += v
       }
     }
-    truePositives.merge(that.truePositives)
-    trueNegatives.merge(that.trueNegatives)
-    falsePositives.merge(that.falsePositives)
-    falseNegatives.merge(that.falseNegatives)
+    predictions += that.predictions
+    truePositives = truePositives.merge(that.truePositives)
+    trueNegatives = trueNegatives.merge(that.trueNegatives)
+    falsePositives = falsePositives.merge(that.falsePositives)
+    falseNegatives = falseNegatives.merge(that.falseNegatives)
 
     this
   }
