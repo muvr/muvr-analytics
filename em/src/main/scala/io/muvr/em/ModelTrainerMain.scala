@@ -48,20 +48,25 @@ object ModelTrainerMain {
 
   private def x(trainFiles: RDD[(String, String)], testFiles: RDD[(String, String)], labelTransform: String ⇒ Option[String],
                persistor: ModelPersistor)(modelTemplate: ModelTemplate) = {
-    val batchSize = 500
+    val batchSize = 50000
     val (testLabels, testExamplesAndLabels) = parse(testFiles, labelTransform)
     val (trainLabels, trainExamplesAndLabels) = parse(trainFiles, labelTransform)
     val model = modelTemplate.modelConstructor(numInputs, trainLabels.length)
     val id = modelTemplate.id
 
     // train
-    val (examples, labels) = batchToExamplesAndLabelsMatrix(trainExamplesAndLabels.collect())
-    model.fit(examples, labels)
+    trainExamplesAndLabels
+      .toLocalIterator
+      .grouped(batchSize)
+      .map(batchToExamplesAndLabelsMatrix)
+      .foreach { case (examples, labels) ⇒ model.fit(examples, labels) }
 
     // evaluate
-    val batchModelEvaluations = for {
-      (examples, labels) ← testExamplesAndLabels.toLocalIterator.grouped(batchSize).map(batchToExamplesAndLabelsMatrix)
-    } yield (id, ModelEvaluation(model, examples, labels))
+    val batchModelEvaluations = testExamplesAndLabels
+      .toLocalIterator
+      .grouped(batchSize)
+      .map(batchToExamplesAndLabelsMatrix)
+      .map { case (examples, labels) ⇒ (id, ModelEvaluation(model, examples, labels ))}
 
     // fold evaluation results
     val modelEvaluations = batchModelEvaluations.foldLeft(Map[ModelTemplate.Id, ModelEvaluation]()) { case (result, (id, modelEvaluation)) ⇒
