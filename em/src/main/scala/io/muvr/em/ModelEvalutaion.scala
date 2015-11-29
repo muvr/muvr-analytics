@@ -9,7 +9,7 @@ import org.nd4j.linalg.api.ndarray.INDArray
 /**
   * Companion for evaluating models
   */
-object ModelEvalutaion {
+object ModelEvaluation {
 
   import INDArrayImplicits._
 
@@ -55,6 +55,24 @@ case class ModelEvaluation(labelCount: Int) {
       m + ((k, m.get(k).map(z.plus(z.one, _)).getOrElse(z.zero)))
     }
 
+    def merge(that: Map[K, V])(implicit n: Numeric[V]): Map[K, V] = {
+      m.map { case (label, count) ⇒ (label, n.plus(that.getOrElse(label, n.zero), count)) }
+    }
+
+  }
+
+  def +=(that: ModelEvaluation): ModelEvaluation = {
+    that.entries.zipWithIndex.foreach { case (row, i) ⇒
+      row.zipWithIndex.foreach { case (v, j) ⇒
+        this.entries(i)(j) += v
+      }
+    }
+    truePositives.merge(that.truePositives)
+    trueNegatives.merge(that.trueNegatives)
+    falsePositives.merge(that.falsePositives)
+    falseNegatives.merge(that.falseNegatives)
+
+    this
   }
 
   /**

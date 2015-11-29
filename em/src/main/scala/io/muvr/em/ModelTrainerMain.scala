@@ -2,49 +2,83 @@ package io.muvr.em
 
 import java.io.File
 
-import io.muvr.em.dataset.ExerciseDataSet.DataSet
 import io.muvr.em.dataset.{Labels, ExerciseDataSetFile}
+import io.muvr.em.model.MLP
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
+import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.factory.Nd4j
 
 object ModelTrainerMain {
+  private val numInputs = 1200
+  private val modelTemplates: List[ModelTemplate] = List.fill(10)(MLP.shallowModel)
 
-  /**
-    * Transform RDD of CSV Muvr file contents into a DataSet
-    * @param files the file contents
-    * @param labelTransform the label transform function
-    * @return the local ``DataSet``
-    */
-  private def dataSet(files: RDD[(String, String)])(labelTransform: String ⇒ Option[String]): DataSet = {
-    val fileLabelsAndExamples = files.map { case (_, text) ⇒ ExerciseDataSetFile.parse(text.split("\n"))(labelTransform) }.collect()
-
-    // all labels is the distinct set of all keys in all the maps
-    val labels = fileLabelsAndExamples.flatMap(_.map(_._1)).distinct
-    val windowSize = 400
+  private def parse(files: RDD[(String, String)], labelTransform: String ⇒ Option[String]): (Labels, RDD[(INDArray, INDArray)]) = {
     val windowStep = 50
-    val windowDimension = 3
-    val examplesAndLabelVectors = fileLabelsAndExamples.flatMap(_.flatMap {
+    // parse all files
+    val parsed = files.map { case (_, text) ⇒ ExerciseDataSetFile.parse(text.split("\n"))(labelTransform) }
+    // extract the labels
+    val labelNames = parsed.flatMap(_.map(_._1)).collect().distinct
+    // extract the examples and labels
+    val examplesAndLabels = parsed.flatMap(_.flatMap {
       case (label, samples) ⇒
-        val labelIndex = labels.indexOf(label)
-        val labelVector = Nd4j.create(labels.indices.map { l ⇒ if (l == labelIndex) 1.toFloat else 0.toFloat }.toArray)
-        samples.sliding(windowSize, windowStep).flatMap { window ⇒
-          if (window.length == windowSize) {
+        val labelIndex = labelNames.indexOf(label)
+        val labelVector = Nd4j.create(labelNames.indices.map { l ⇒ if (l == labelIndex) 1.toFloat else 0.toFloat }.toArray)
+        samples.sliding(400, windowStep).flatMap { window ⇒
+          if (window.length == 400) {
             val samples = window.flatten
-            Some((labelVector, Nd4j.create(samples)))
+            Some((Nd4j.create(samples), labelVector))
           } else None
         }
     })
 
-    val examplesMatrix = Nd4j.create(examplesAndLabelVectors.length, windowSize * windowDimension)
-    val labelsMatrix = Nd4j.create(examplesAndLabelVectors.length, labels.length)
-    examplesAndLabelVectors.zipWithIndex.foreach {
-      case ((label, example), i) ⇒
-        examplesMatrix.putRow(i, example)
-        labelsMatrix.putRow(i, label)
+    (Labels(labelNames), examplesAndLabels)
+  }
+
+  private def batchToExamplesAndLabelsMatrix(batch: Seq[(INDArray, INDArray)]): (INDArray, INDArray) = {
+    val (_, labels) = batch.head
+    val examplesMatrix = Nd4j.create(batch.length, numInputs)
+    val labelsMatrix = Nd4j.create(batch.length, labels.columns())
+    batch.zipWithIndex.foreach { case ((example, label), i) ⇒
+      examplesMatrix.putRow(i, example)
+      labelsMatrix.putRow(i, label)
+    }
+    (examplesMatrix, labelsMatrix)
+  }
+
+  private def x(trainFiles: RDD[(String, String)], testFiles: RDD[(String, String)], modelTemplates: List[ModelTemplate], labelTransform: String ⇒ Option[String],
+               persistor: ModelPersistor) = {
+    val batchSize = 500
+    val (testLabels, testExamplesAndLabels) = parse(testFiles, labelTransform)
+    val (trainLabels, trainExamplesAndLabels) = parse(trainFiles, labelTransform)
+    val models = modelTemplates.map(t ⇒ (t.id, t.modelConstructor(numInputs, trainLabels.length)))
+
+    // train
+    for {
+      (id, model) ← models
+      (examples, labels) = batchToExamplesAndLabelsMatrix(trainExamplesAndLabels.collect()) //.map(batchToExamplesAndLabelsMatrix)
+    } yield model.fit(examples, labels)
+
+    // evaluate
+    val batchModelEvaluations = for {
+      (id, model) ← models
+      (examples, labels) = batchToExamplesAndLabelsMatrix(testExamplesAndLabels.collect()) // .collect().map(List(_)).map(batchToExamplesAndLabelsMatrix)
+    } yield (id, ModelEvaluation(model, examples, labels))
+
+    // fold evaluation results
+    val modelEvaluations = batchModelEvaluations.foldLeft(Map[ModelTemplate.Id, ModelEvaluation]()) { case (result, (id, modelEvaluation)) ⇒
+      result.updated(id, result.get(id).map(_ += modelEvaluation).getOrElse(modelEvaluation))
     }
 
-    DataSet(Labels(labels.toList), windowSize * windowDimension, (examplesMatrix, labelsMatrix))
+    // save
+    models.map { case (id, model) ⇒
+      val Some(evaluation) = modelEvaluations.get(id)
+
+      println(s"Model $id")
+      println(evaluation.toPrettyString(testLabels))
+
+      persistor.persist(id, model, testLabels, evaluation)
+    }
   }
 
   /**
@@ -70,11 +104,14 @@ object ModelTrainerMain {
     val trainPath = s"/Users/janmachacek/Muvr/muvr-open-training-data/train/$model"
     val testPath = s"/Users/janmachacek/Muvr/muvr-open-training-data/train/$model"
     val outputPath = new File("/Users/janmachacek/Muvr/muvr-open-training-data/models"); outputPath.mkdirs()
-    val trainer = new ModelTrainer(new ModelPersistor(outputPath))
+    val persistor = new ModelPersistor(outputPath)
 
-    val train = dataSet(sc.wholeTextFiles(trainPath))(labelTransform)
-    val test  = dataSet(sc.wholeTextFiles(testPath))(labelTransform)
-    val best  = trainer.execute(model, train, test)
-    println(best)
+    x(sc.wholeTextFiles(trainPath), sc.wholeTextFiles(testPath), modelTemplates, labelTransform, persistor)
+
+//    val trainer = new ModelTrainer()
+//    val train = dataSet(sc.wholeTextFiles(trainPath))(labelTransform)
+//    val test  = dataSet(sc.wholeTextFiles(testPath))(labelTransform)
+//    val best  = trainer.execute(model, train, test)
+//    println(best)
   }
 }

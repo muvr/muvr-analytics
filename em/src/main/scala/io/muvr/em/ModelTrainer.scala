@@ -48,7 +48,7 @@ class ModelTrainer(persistor: ModelPersistor) {
     */
   private def evaluate(model: MultiLayerNetwork, labels: Labels, dataSet: DataSet): ModelEvaluation = {
     val (examplesMatrix, labelsMatrix) = dataSet.examples
-    ModelEvalutaion(model, examplesMatrix, labelsMatrix)
+    ModelEvaluation(model, examplesMatrix, labelsMatrix)
   }
 
   /**

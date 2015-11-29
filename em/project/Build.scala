@@ -28,7 +28,7 @@ object Dependency {
   object spark {
     private val core = "org.apache.spark" %% "spark-core" % "1.5.2"
 
-    val all = Seq(core % "provided")
+    val all = Seq(core)
   }
 
   object dl4j {
