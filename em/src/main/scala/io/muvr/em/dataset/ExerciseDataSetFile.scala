@@ -1,56 +1,5 @@
 package io.muvr.em.dataset
 
-import org.nd4j.linalg.api.ndarray.INDArray
-
-/**
-  * The labels
-  * @param labels label names
-  */
-case class Labels(labels: Array[String]) extends AnyVal {
-  def length: Int = labels.length
-}
-
-/**
-  * EDS type definitions
-  */
-object ExerciseDataSet {
-
-  /**
-    * The examples
-    */
-  type Examples = (INDArray, INDArray)
-
-  /**
-    * The data set containing the labels
-    * @param labels the labels
-    * @param numInputs number of inputs for the ANN
-    * @param examples the examples and labels
-    */
-  case class DataSet(labels: Labels, numInputs: Int, examples: Examples) {
-    lazy val numOutputs: Int = labels.labels.length
-  }
-
-}
-
-/**
-  * Implementations of EDS must provide iterator over EALs
-  */
-trait ExerciseDataSet {
-  import ExerciseDataSet._
-
-  /**
-    * The iterator of distinct exercises
-    * @return the I of EAL
-    */
-  def labelsAndExamples: DataSet
-
-  /**
-    * The iterator of exercise vs. slacking
-    * @return the I of EAL
-    */
-  def exerciseVsSlacking: DataSet
-
-}
 
 object ExerciseDataSetFile {
 
