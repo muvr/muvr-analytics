@@ -89,7 +89,7 @@ object ModelTrainerMain {
       .mapPartitions(_.grouped(batchSize).map(batchToExamplesAndLabelsMatrix))
 //      .toLocalIterator.grouped(batchSize).map(batchToExamplesAndLabelsMatrix)
       .map { case (examples, labels) ⇒ ModelEvaluation(model, examples, labels ) }
-      .fold(ModelEvaluation(testLabels.length))(_ + _)
+      .reduce(_ + _)
 
     // persist model & its detail
     ModelPersistor.persist(outputPath, id, model, testLabels, evaluation)
@@ -108,7 +108,7 @@ object ModelTrainerMain {
     * @param exercising true to build exercise classifier; false to build E vs. S classifier
     * @return the label transform
     */
-  private def labelTransform(exercising: Boolean): LabelTransform = {
+  private def buildLabelTransform(exercising: Boolean): LabelTransform = {
     if (exercising) {
       case "" ⇒ None
       case "triceps-dips" ⇒ None
@@ -133,7 +133,7 @@ object ModelTrainerMain {
     val Some(trainPath)  = parser.get("train-path")
     val Some(testPath)   = parser.get("test-path")
     val Some(outputPath) = parser.get("output-path")
-    val labelTransform   = labelTransform(parser.getOrElse("exercising", "true") == "true")
+    val labelTransform   = buildLabelTransform(parser.getOrElse("slacking", "") == "true")
     val outputPathFile   = new File(outputPath); outputPathFile.mkdirs()
 
     // construct the Spark Context, run the training pipeline
@@ -150,5 +150,5 @@ object ModelTrainerMain {
     val bestModel = modelTemplates.map(pipeline(train, test, outputPathFile)).maxBy(_.score())
     println(bestModel)
   }
-  
+
 }

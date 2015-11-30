@@ -16,6 +16,7 @@ object MLP {
 
   def shallowModel: ModelTemplate = ModelTemplate("smlp@" + UUID.randomUUID().toString, newShallowModel, ModelPreprocessing.None)
 
+  //noinspection ScalaDeprecation
   private def newShallowModel(numInputs: Int, numOutputs: Int): MultiLayerNetwork = {
     val distribution: UniformDistribution = new UniformDistribution(-0.1, 0.1)
     val conf = new NeuralNetConfiguration.Builder()
