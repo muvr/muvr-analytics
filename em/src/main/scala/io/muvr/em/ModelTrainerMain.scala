@@ -12,7 +12,6 @@ import org.nd4j.linalg.factory.Nd4j
 object ModelTrainerMain {
   private val numInputs = 1200
   private val modelTemplates: List[ModelTemplate] = List.fill(5)(MLP.shallowModel)
-  private val outputPath = new File("/Users/janmachacek/Muvr/muvr-open-training-data/models"); outputPath.mkdirs()
 
   private type LabelsAndEL = (Labels, RDD[(INDArray, INDArray)])
   private type LabelTransform = String ⇒ Option[String]
@@ -69,9 +68,10 @@ object ModelTrainerMain {
     *
     * @param train the names and content of the training files (CSVs)
     * @param test the names and content of the test files (CSVs)
+    * @param outputPath the directory to write the outputs to
     * @param modelTemplate the model template
     */
-  private def pipeline(train: LabelsAndEL, test: LabelsAndEL)(modelTemplate: ModelTemplate): Unit = {
+  private def pipeline(train: LabelsAndEL, test: LabelsAndEL, outputPath: File)(modelTemplate: ModelTemplate): Unit = {
     val batchSize = 50000
     val (testLabels, testExamplesAndLabels) = test
     val (trainLabels, trainExamplesAndLabels) = train
@@ -81,14 +81,13 @@ object ModelTrainerMain {
     // train
     trainExamplesAndLabels
 //      .mapPartitions(_.grouped(batchSize).map(batchToExamplesAndLabelsMatrix))
-      .toLocalIterator
-      .grouped(batchSize)
-      .map(batchToExamplesAndLabelsMatrix)
+      .toLocalIterator.grouped(batchSize).map(batchToExamplesAndLabelsMatrix)
       .foreach { case (examples, labels) ⇒ model.fit(examples, labels) }
 
     // evaluate
     testExamplesAndLabels
       .mapPartitions(_.grouped(batchSize).map(batchToExamplesAndLabelsMatrix))
+//      .toLocalIterator.grouped(batchSize).map(batchToExamplesAndLabelsMatrix)
       .map { case (examples, labels) ⇒ ModelEvaluation(model, examples, labels ) }
       .foreach { evaluation ⇒
         // save
@@ -105,8 +104,14 @@ object ModelTrainerMain {
     * @param args the args
     */
   def main(args: Array[String]): Unit = {
-    val master   = "local"
-    val model    = "arms"
+    val parser = new ArgumentParser(args)
+
+    val Some(master)     = parser.get("master")
+    val Some(model)      = parser.get("model")
+    val Some(trainPath)  = parser.get("train-path")
+    val Some(testPath)   = parser.get("test-path")
+    val Some(outputPath) = parser.get("output-path")
+
     val labelTransform: (String ⇒ Option[String]) = {
       case "" ⇒ None
       case "triceps-dips" ⇒ None
@@ -120,12 +125,11 @@ object ModelTrainerMain {
       setAppName(name).
       set("spark.app.id", name)
     val sc = new SparkContext(conf)
-    val trainPath = s"/Users/janmachacek/Muvr/muvr-open-training-data/train/$model"
-    val testPath = s"/Users/janmachacek/Muvr/muvr-open-training-data/train/$model"
+    val outputPathFile = new File(outputPath); outputPathFile.mkdirs()
 
-    val train = parse(sc.wholeTextFiles(trainPath), labelTransform)
-    val test = parse(sc.wholeTextFiles(testPath), labelTransform)
+    val train = parse(sc.wholeTextFiles(s"$trainPath/$model"), labelTransform)
+    val test = parse(sc.wholeTextFiles(s"$testPath/$model"), labelTransform)
 
-    modelTemplates.foreach(pipeline(train, test))
+    modelTemplates.foreach(pipeline(train, test, outputPathFile))
   }
 }
