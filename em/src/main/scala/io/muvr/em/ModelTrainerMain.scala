@@ -12,8 +12,11 @@ import org.nd4j.linalg.factory.Nd4j
 
 object ModelTrainerMain {
   private val numInputs = 1200
-  private val modelTemplates: List[ModelTemplate] = List.fill(1)(MLP.shallowModel)
+  private val modelTemplates: List[ModelTemplate] = List.fill(5)(MLP.shallowModel)
   private val outputPath = new File("/Users/janmachacek/Muvr/muvr-open-training-data/models"); outputPath.mkdirs()
+
+  private type LabelsAndEL = (Labels, RDD[(INDArray, INDArray)])
+  private type LabelTransform = String ⇒ Option[String]
 
   /**
     * Parses the contents of CSV files into a collected list of labels and RDDs of examples and labels
@@ -21,7 +24,7 @@ object ModelTrainerMain {
     * @param labelTransform the label transformation to apply
     * @return distinct labels and RDD of (examples, labels)
     */
-  private def parse(files: RDD[(String, String)], labelTransform: String ⇒ Option[String]): (Labels, RDD[(INDArray, INDArray)]) = {
+  private def parse(files: RDD[(String, String)], labelTransform: LabelTransform): LabelsAndEL = {
     val windowStep = 50
     // parse all files
     val parsed = files.map { case (_, text) ⇒ ExerciseDataSetFile.parse(text.split("\n"))(labelTransform) }
@@ -40,7 +43,7 @@ object ModelTrainerMain {
         }
     })
 
-    (Labels(labelNames), examplesAndLabels)
+    (Labels(labelNames), examplesAndLabels.cache())
   }
 
   /**
@@ -65,16 +68,14 @@ object ModelTrainerMain {
     * evaluates the model's performance on the test data. Finally, it persist the model
     * and evaluation.
     *
-    * @param trainFiles the names and content of the training files (CSVs)
-    * @param testFiles the names and content of the test files (CSVs)
-    * @param labelTransform the label transform to apply
+    * @param train the names and content of the training files (CSVs)
+    * @param test the names and content of the test files (CSVs)
     * @param modelTemplate the model template
     */
-  private def pipeline(trainFiles: RDD[(String, String)], testFiles: RDD[(String, String)],
-                       labelTransform: String ⇒ Option[String])(modelTemplate: ModelTemplate): Unit = {
+  private def pipeline(train: LabelsAndEL, test: LabelsAndEL)(modelTemplate: ModelTemplate): Unit = {
     val batchSize = 50000
-    val (testLabels, testExamplesAndLabels) = parse(testFiles, labelTransform)
-    val (trainLabels, trainExamplesAndLabels) = parse(trainFiles, labelTransform)
+    val (testLabels, testExamplesAndLabels) = test
+    val (trainLabels, trainExamplesAndLabels) = train
     val model = modelTemplate.modelConstructor(numInputs, trainLabels.length)
     val id = modelTemplate.id
 
@@ -123,6 +124,9 @@ object ModelTrainerMain {
     val trainPath = s"/Users/janmachacek/Muvr/muvr-open-training-data/train/$model"
     val testPath = s"/Users/janmachacek/Muvr/muvr-open-training-data/train/$model"
 
-    modelTemplates.foreach(pipeline(sc.wholeTextFiles(trainPath), sc.wholeTextFiles(testPath), labelTransform))
+    val train = parse(sc.wholeTextFiles(trainPath), labelTransform)
+    val test = parse(sc.wholeTextFiles(testPath), labelTransform)
+    
+    modelTemplates.foreach(pipeline(train, test))
   }
 }
