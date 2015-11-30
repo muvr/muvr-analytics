@@ -84,9 +84,7 @@ object ModelTrainerMain {
       .toLocalIterator
       .grouped(batchSize)
       .map(batchToExamplesAndLabelsMatrix)
-      .foreach { case (examples, labels) ⇒
-        model.fit(examples, labels)
-    }
+      .foreach { case (examples, labels) ⇒ model.fit(examples, labels) }
 
     // evaluate
     testExamplesAndLabels
