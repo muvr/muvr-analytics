@@ -9,7 +9,7 @@ import org.nd4j.linalg.api.ndarray.INDArray
 /**
   * Companion for evaluating models
   */
-object ModelEvalutaion {
+object ModelEvaluation {
 
   import INDArrayImplicits._
 
@@ -44,10 +44,10 @@ object ModelEvalutaion {
 case class ModelEvaluation(labelCount: Int) {
   private val entries: Array[Array[Int]] = Array.fill(labelCount)(Array.fill(labelCount)(0))
   private var predictions: Int = 0
-  private var truePositives: Map[Int, Int] = Map()
-  private var trueNegatives: Map[Int, Int] = Map()
-  private var falsePositives: Map[Int, Int] = Map()
-  private var falseNegatives: Map[Int, Int] = Map()
+  private var truePositives: Map[Int, Int] = (0 until labelCount).map((_, 0)).toMap
+  private var trueNegatives: Map[Int, Int] = (0 until labelCount).map((_, 0)).toMap
+  private var falsePositives: Map[Int, Int] = (0 until labelCount).map((_, 0)).toMap
+  private var falseNegatives: Map[Int, Int] = (0 until labelCount).map((_, 0)).toMap
 
   implicit class MapUpdates[K, V](m: Map[K, V]) {
 
@@ -55,6 +55,25 @@ case class ModelEvaluation(labelCount: Int) {
       m + ((k, m.get(k).map(z.plus(z.one, _)).getOrElse(z.zero)))
     }
 
+    def merge(that: Map[K, V])(implicit n: Numeric[V]): Map[K, V] = {
+      that.map { case (label, count) ⇒ (label, n.plus(m.getOrElse(label, n.zero), count)) }
+    }
+
+  }
+
+  def +(that: ModelEvaluation): ModelEvaluation = {
+    that.entries.zipWithIndex.foreach { case (row, i) ⇒
+      row.zipWithIndex.foreach { case (v, j) ⇒
+        this.entries(i)(j) += v
+      }
+    }
+    predictions += that.predictions
+    truePositives = truePositives.merge(that.truePositives)
+    trueNegatives = trueNegatives.merge(that.trueNegatives)
+    falsePositives = falsePositives.merge(that.falsePositives)
+    falseNegatives = falseNegatives.merge(that.falseNegatives)
+
+    this
   }
 
   /**
@@ -167,6 +186,14 @@ case class ModelEvaluation(labelCount: Int) {
     val rec = recall()
     if (prec == 0 || rec == 0) 0
     else 2.0 * (precision * recall / (precision + recall))
+  }
+
+  /**
+    * Computes the overall score for this model
+    * @return the score
+    */
+  def score(): Double = {
+    5.0 * accuracy() + 2 * precision() + recall() + f1()
   }
 
   /**

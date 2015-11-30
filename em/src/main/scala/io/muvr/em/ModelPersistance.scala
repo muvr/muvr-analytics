@@ -10,30 +10,30 @@ import scala.io.Source
 
 case class PersistedModel[Handle](configuration: Handle, params: Handle, labels: Handle, evaluation: Handle, confusionMatrix: Handle)
 
-class ModelPersistor(rootDirectory: File) {
+object ModelPersistor {
 
-  def getOutputStream(name: String): (OutputStream, File) = {
+  private def getOutputStream(rootDirectory: File, name: String): (OutputStream, File) = {
     val file = new File(rootDirectory, name)
     (new FileOutputStream(file), file)
   }
 
-  def persist(id: ModelTemplate.Id, model: MultiLayerNetwork, labels: Labels, modelEvaluation: ModelEvaluation): PersistedModel[File] = {
-    val (paramsOut, paramsA) = getOutputStream(s"$id-params.raw")
+  def persist(rootDirectory: File, id: ModelTemplate.Id, model: MultiLayerNetwork, labels: Labels, modelEvaluation: ModelEvaluation): PersistedModel[File] = {
+    val (paramsOut, paramsA) = getOutputStream(rootDirectory, s"$id-params.raw")
     Nd4j.write(model.params(), new DataOutputStream(paramsOut))
 
-    val (configurationOut, configurationA) = getOutputStream(s"$id-configuration.json")
+    val (configurationOut, configurationA) = getOutputStream(rootDirectory, s"$id-configuration.json")
     configurationOut.write(model.conf().toJson.getBytes("UTF-8"))
     configurationOut.close()
 
-    val (labelsOut, labelsA) = getOutputStream(s"$id-labels.txt")
+    val (labelsOut, labelsA) = getOutputStream(rootDirectory, s"$id-labels.txt")
     labelsOut.write(labels.labels.mkString("\n").getBytes("UTF-8"))
     labelsOut.close()
 
-    val (confusionMatrixOut, confusionMatrixA) = getOutputStream(s"$id-cm.csv")
+    val (confusionMatrixOut, confusionMatrixA) = getOutputStream(rootDirectory, s"$id-cm.csv")
     modelEvaluation.saveConfusionMatrixAsCSV(labels, new BufferedWriter(new OutputStreamWriter(confusionMatrixOut)))
     confusionMatrixOut.close()
 
-    val (evaluationOut, evaluationA) = getOutputStream(s"$id-evaluation.csv")
+    val (evaluationOut, evaluationA) = getOutputStream(rootDirectory, s"$id-evaluation.csv")
     modelEvaluation.saveEvaluationAsCSV(new BufferedWriter(new OutputStreamWriter(evaluationOut)))
     evaluationOut.close()
 

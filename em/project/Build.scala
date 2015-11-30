@@ -6,7 +6,7 @@ object BuildSettings {
   lazy val buildSettings = Defaults.coreDefaultSettings ++ Seq (
     name          := "em",
     version       := "1.0.0-SNAPSHOT",
-    scalaVersion  := "2.11.7",
+    scalaVersion  := "2.10.6",
     organization  := "io.muvr",
     description   := "muvr exercise model",
     scalacOptions := Seq("-deprecation", "-unchecked", "-encoding", "utf8", "-Xlint")
