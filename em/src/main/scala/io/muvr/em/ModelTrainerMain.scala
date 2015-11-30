@@ -126,7 +126,7 @@ object ModelTrainerMain {
 
     val train = parse(sc.wholeTextFiles(trainPath), labelTransform)
     val test = parse(sc.wholeTextFiles(testPath), labelTransform)
-    
+
     modelTemplates.foreach(pipeline(train, test))
   }
 }
