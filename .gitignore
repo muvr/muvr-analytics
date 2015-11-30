@@ -163,4 +163,5 @@ snapshots
 logs/
 checkpoint
 output*
+.venv-*
 

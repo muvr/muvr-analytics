@@ -6,7 +6,7 @@ object BuildSettings {
   lazy val buildSettings = Defaults.coreDefaultSettings ++ Seq (
     name          := "em",
     version       := "1.0.0-SNAPSHOT",
-    scalaVersion  := "2.11.7",
+    scalaVersion  := "2.10.6",
     organization  := "io.muvr",
     description   := "muvr exercise model",
     scalacOptions := Seq("-deprecation", "-unchecked", "-encoding", "utf8", "-Xlint")
@@ -28,7 +28,7 @@ object Dependency {
   object spark {
     private val core = "org.apache.spark" %% "spark-core" % "1.5.2"
 
-    val all = Seq(core)
+    val all = Seq(core % "provided")
   }
 
   object dl4j {

@@ -42,7 +42,7 @@ object ModelTrainerMain {
         }
     })
 
-    (Labels(labelNames), examplesAndLabels.cache())
+    (Labels(labelNames), examplesAndLabels)
   }
 
   /**

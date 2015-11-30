@@ -5,4 +5,4 @@
 sbt clean assembly
 
 #SPARK_HOME/bin
-spark-submit --class io.muvr.em.ModelTrainerMain target/scala-2.11/em-assembly-1.0.0-SNAPSHOT.jar 
+spark-submit --class io.muvr.em.ModelTrainerMain --driver-memory 4G target/scala-2.10/em-assembly-1.0.0-SNAPSHOT.jar 

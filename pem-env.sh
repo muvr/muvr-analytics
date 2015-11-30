@@ -8,7 +8,7 @@ then
 fi
 
 # Create virtual env
-VENV=venv
+VENV=.venv-pem
 sudo pip2.7 install virtualenv
 sudo rm -rf $VENV
 virtualenv $VENV -p /usr/bin/python2.7
