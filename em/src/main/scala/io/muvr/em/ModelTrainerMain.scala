@@ -100,36 +100,50 @@ object ModelTrainerMain {
   }
 
   /**
+    * Returns the label transform function depending on whether we're building exercise classifier
+    * or exercise vs. slacking classifier
+    *
+    * @param exercising true to build exercise classifier; false to build E vs. S classifier
+    * @return the label transform
+    */
+  private def labelTransform(exercising: Boolean): LabelTransform = {
+    if (exercising) {
+      case "" ⇒ None
+      case "triceps-dips" ⇒ None
+      case "dumbbell-bench-press" ⇒ None
+      case x ⇒ Some(x)
+    } else {
+      case "" ⇒ Some("-")
+      case _ ⇒ Some("e")
+    }
+  }
+
+  /**
     * Starts the Spark app
     * @param args the args
     */
   def main(args: Array[String]): Unit = {
     val parser = new ArgumentParser(args)
 
+    // parse required arguments
     val Some(master)     = parser.get("master")
     val Some(model)      = parser.get("model")
     val Some(trainPath)  = parser.get("train-path")
     val Some(testPath)   = parser.get("test-path")
     val Some(outputPath) = parser.get("output-path")
+    val labelTransform   = labelTransform(parser.getOrElse("exercising", "true") == "true")
+    val outputPathFile   = new File(outputPath); outputPathFile.mkdirs()
 
-    val labelTransform: (String ⇒ Option[String]) = {
-      case "" ⇒ None
-      case "triceps-dips" ⇒ None
-      case "dumbbell-bench-press" ⇒ None
-      case x ⇒ Some(x)
-    }
-
-    val name = "Train"
+    // construct the Spark Context, run the training pipeline
+    val name = "ModelTrainer"
     val conf = new SparkConf().
       setMaster(master).
       setAppName(name).
       set("spark.app.id", name)
     val sc = new SparkContext(conf)
-    val outputPathFile = new File(outputPath); outputPathFile.mkdirs()
 
     val train = parse(sc.wholeTextFiles(s"$trainPath/$model"), labelTransform)
-    val test = parse(sc.wholeTextFiles(s"$testPath/$model"), labelTransform)
-
+    val test  = parse(sc.wholeTextFiles(s"$testPath/$model"),  labelTransform)
     modelTemplates.foreach(pipeline(train, test, outputPathFile))
   }
 }
