@@ -2,11 +2,10 @@ package io.muvr.em
 
 import java.io.File
 
-import io.muvr.em.dataset.{Labels, ExerciseDataSetFile}
+import io.muvr.em.dataset.{ExerciseDataSetFile, Labels}
 import io.muvr.em.model.MLP
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
-import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.factory.Nd4j
 
