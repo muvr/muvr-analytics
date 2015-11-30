@@ -6,12 +6,14 @@ import io.muvr.em.dataset.{Labels, ExerciseDataSetFile}
 import io.muvr.em.model.MLP
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
+import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.factory.Nd4j
 
 object ModelTrainerMain {
   private val numInputs = 1200
   private val modelTemplates: List[ModelTemplate] = List.fill(1)(MLP.shallowModel)
+  private val outputPath = new File("/Users/janmachacek/Muvr/muvr-open-training-data/models"); outputPath.mkdirs()
 
   /**
     * Parses the contents of CSV files into a collected list of labels and RDDs of examples and labels
@@ -49,7 +51,7 @@ object ModelTrainerMain {
   private def batchToExamplesAndLabelsMatrix(batch: Seq[(INDArray, INDArray)]): (INDArray, INDArray) = {
     val (_, labels) = batch.head
     val examplesMatrix = Nd4j.create(batch.length, numInputs)
-    val labelsMatrix = Nd4j.create(batch.length, labels.columns())
+    val labelsMatrix = Nd4j.create(batch.length, labels.length())
     batch.zipWithIndex.foreach { case ((example, label), i) ⇒
       examplesMatrix.putRow(i, example)
       labelsMatrix.putRow(i, label)
@@ -66,12 +68,10 @@ object ModelTrainerMain {
     * @param trainFiles the names and content of the training files (CSVs)
     * @param testFiles the names and content of the test files (CSVs)
     * @param labelTransform the label transform to apply
-    * @param persistor the persistor that will store the model and its evaluation
     * @param modelTemplate the model template
     */
   private def pipeline(trainFiles: RDD[(String, String)], testFiles: RDD[(String, String)],
-                       labelTransform: String ⇒ Option[String],
-                       persistor: ModelPersistor)(modelTemplate: ModelTemplate): Unit = {
+                       labelTransform: String ⇒ Option[String])(modelTemplate: ModelTemplate): Unit = {
     val batchSize = 50000
     val (testLabels, testExamplesAndLabels) = parse(testFiles, labelTransform)
     val (trainLabels, trainExamplesAndLabels) = parse(trainFiles, labelTransform)
@@ -80,27 +80,26 @@ object ModelTrainerMain {
 
     // train
     trainExamplesAndLabels
+//      .mapPartitions(_.grouped(batchSize).map(batchToExamplesAndLabelsMatrix))
       .toLocalIterator
       .grouped(batchSize)
       .map(batchToExamplesAndLabelsMatrix)
-      .foreach { case (examples, labels) ⇒ model.fit(examples, labels) }
+      .foreach { case (examples, labels) ⇒
+        model.fit(examples, labels)
+    }
 
     // evaluate
-    val batchModelEvaluations = testExamplesAndLabels
-      .toLocalIterator
-      .grouped(batchSize)
-      .map(batchToExamplesAndLabelsMatrix)
+    testExamplesAndLabels
+      .mapPartitions(_.grouped(batchSize).map(batchToExamplesAndLabelsMatrix))
       .map { case (examples, labels) ⇒ ModelEvaluation(model, examples, labels ) }
+      .foreach { evaluation ⇒
+        // save
+        ModelPersistor.persist(outputPath, id, model, testLabels, evaluation)
 
-    // fold evaluation results
-    val evaluation = batchModelEvaluations.foldLeft(ModelEvaluation(testLabels.length))(_ + _)
-
-    // save
-    persistor.persist(id, model, testLabels, evaluation)
-
-    // eyeball result
-    println(s"Model $id")
-    println(evaluation.toPrettyString(testLabels))
+        // eyeball result
+        println(s"Model $id")
+        println(evaluation.toPrettyString(testLabels))
+      }
   }
 
   /**
@@ -125,9 +124,7 @@ object ModelTrainerMain {
     val sc = new SparkContext(conf)
     val trainPath = s"/Users/janmachacek/Muvr/muvr-open-training-data/train/$model"
     val testPath = s"/Users/janmachacek/Muvr/muvr-open-training-data/train/$model"
-    val outputPath = new File("/Users/janmachacek/Muvr/muvr-open-training-data/models"); outputPath.mkdirs()
-    val persistor = new ModelPersistor(outputPath)
 
-    modelTemplates.foreach(pipeline(sc.wholeTextFiles(trainPath), sc.wholeTextFiles(testPath), labelTransform, persistor))
+    modelTemplates.foreach(pipeline(sc.wholeTextFiles(trainPath), sc.wholeTextFiles(testPath), labelTransform))
   }
 }
