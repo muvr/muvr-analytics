@@ -71,7 +71,7 @@ object ModelTrainerMain {
     * @param outputPath the directory to write the outputs to
     * @param modelTemplate the model template
     */
-  private def pipeline(train: LabelsAndEL, test: LabelsAndEL, outputPath: File)(modelTemplate: ModelTemplate): Unit = {
+  private def pipeline(train: LabelsAndEL, test: LabelsAndEL, outputPath: File)(modelTemplate: ModelTemplate): ModelEvaluation = {
     val batchSize = 50000
     val (testLabels, testExamplesAndLabels) = test
     val (trainLabels, trainExamplesAndLabels) = train
@@ -85,18 +85,20 @@ object ModelTrainerMain {
       .foreach { case (examples, labels) ⇒ model.fit(examples, labels) }
 
     // evaluate
-    testExamplesAndLabels
+    val evaluation = testExamplesAndLabels
       .mapPartitions(_.grouped(batchSize).map(batchToExamplesAndLabelsMatrix))
 //      .toLocalIterator.grouped(batchSize).map(batchToExamplesAndLabelsMatrix)
       .map { case (examples, labels) ⇒ ModelEvaluation(model, examples, labels ) }
-      .foreach { evaluation ⇒
-        // save
-        ModelPersistor.persist(outputPath, id, model, testLabels, evaluation)
+      .fold(ModelEvaluation(testLabels.length))(_ + _)
 
-        // eyeball result
-        println(s"Model $id")
-        println(evaluation.toPrettyString(testLabels))
-      }
+    // persist model & its detail
+    ModelPersistor.persist(outputPath, id, model, testLabels, evaluation)
+
+    // eyeball result
+    println(s"Model $id")
+    println(evaluation.toPrettyString(testLabels))
+
+    evaluation
   }
 
   /**
@@ -144,6 +146,9 @@ object ModelTrainerMain {
 
     val train = parse(sc.wholeTextFiles(s"$trainPath/$model"), labelTransform)
     val test  = parse(sc.wholeTextFiles(s"$testPath/$model"),  labelTransform)
-    modelTemplates.foreach(pipeline(train, test, outputPathFile))
+
+    val bestModel = modelTemplates.map(pipeline(train, test, outputPathFile)).maxBy(_.score())
+    println(bestModel)
   }
+  
 }

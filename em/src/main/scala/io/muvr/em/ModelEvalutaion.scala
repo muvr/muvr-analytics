@@ -189,6 +189,14 @@ case class ModelEvaluation(labelCount: Int) {
   }
 
   /**
+    * Computes the overall score for this model
+    * @return the score
+    */
+  def score(): Double = {
+    5.0 * accuracy() + 2 * precision() + recall() + f1()
+  }
+
+  /**
     * Save this CM into a CSV output
     * @param labels the labels
     * @param out the output buffer
