@@ -3,6 +3,8 @@ package io.muvr.em
 import java.io._
 import java.net.URL
 
+import com.amazonaws.auth.BasicAWSCredentials
+import com.amazonaws.services.s3.AmazonS3Client
 import org.nd4j.linalg.factory.Nd4j
 
 /**
@@ -39,10 +41,28 @@ trait ModelPersistor {
   * S3 target
   * @param bucket the bucket name
   */
-class S3ModelPersistor(bucket: String) extends ModelPersistor {
+class S3ModelPersistor(bucket: String, awsAccessKey: String, awsSecretAccessKey: String) extends ModelPersistor {
+  private lazy val credentials = new BasicAWSCredentials(awsAccessKey, awsSecretAccessKey)
+  private lazy val client = new AmazonS3Client(credentials)
+
+  private class AWSOutputStream(name: String) extends OutputStream {
+    val tempFile = File.createTempFile(name, name)
+    val fos = new FileOutputStream(tempFile)
+
+    override def close(): Unit = {
+      client.putObject(bucket, name, tempFile)
+      fos.close()
+    }
+
+    override def write(b: Int): Unit = fos.write(b)
+  }
+
   type Handle = URL
 
-  def getOutput(name: String): (OutputStream, Handle) = ???
+  def getOutput(name: String): (OutputStream, Handle) = {
+    val handle = new URL("s3", "s3.amazonmagic.com", "foo")
+    (new AWSOutputStream(name), handle)
+  }
 
 }
 
