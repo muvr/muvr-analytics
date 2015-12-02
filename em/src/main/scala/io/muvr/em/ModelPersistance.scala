@@ -1,40 +1,60 @@
 package io.muvr.em
 
 import java.io._
+import java.net.URL
 
-import io.muvr.em.dataset.Labels
-import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.nd4j.linalg.factory.Nd4j
-
-import scala.io.Source
 
 case class PersistedModel[Handle](configuration: Handle, params: Handle, labels: Handle, evaluation: Handle, confusionMatrix: Handle)
 
-object ModelPersistor {
+trait ModelPersistor {
+  type Handle
+  def getOutputStream(name: String): (OutputStream, Handle)
+}
 
-  private def getOutputStream(rootDirectory: File, name: String): (OutputStream, File) = {
-    val file = new File(rootDirectory, name)
+class S3ModelPersistor(bucket: String) extends ModelPersistor {
+  type Handle = URL
+
+  def getOutputStream(name: String): (OutputStream, Handle) = ???
+
+}
+
+class LocalFileModelPersistor(rootDirectory: String) extends ModelPersistor {
+  private val rootDirectoryFile = {
+    val f = new File(rootDirectory)
+    f.mkdirs()
+    f
+  }
+
+  type Handle = File
+
+  def getOutputStream(name: String): (OutputStream, Handle) = {
+    val file = new File(rootDirectoryFile, name)
     (new FileOutputStream(file), file)
   }
 
-  def persist(rootDirectory: File, id: ModelTemplate.Id, model: MultiLayerNetwork, labels: Labels, modelEvaluation: ModelEvaluation): PersistedModel[File] = {
-    val (paramsOut, paramsA) = getOutputStream(rootDirectory, s"$id-params.raw")
-    Nd4j.write(model.params(), new DataOutputStream(paramsOut))
+}
 
-    val (configurationOut, configurationA) = getOutputStream(rootDirectory, s"$id-configuration.json")
-    configurationOut.write(model.conf().toJson.getBytes("UTF-8"))
+object ModelPersistor {
+
+  def apply(modelPersistor: ModelPersistor)(tem: TrainedAndEvaluatedModel): PersistedModel[modelPersistor.Handle] = {
+    val (paramsOut, paramsA) = modelPersistor.getOutputStream(s"${tem.id}-params.raw")
+    Nd4j.write(tem.model.params(), new DataOutputStream(paramsOut))
+
+    val (configurationOut, configurationA) = modelPersistor.getOutputStream(s"${tem.id}-configuration.json")
+    configurationOut.write(tem.model.conf().toJson.getBytes("UTF-8"))
     configurationOut.close()
 
-    val (labelsOut, labelsA) = getOutputStream(rootDirectory, s"$id-labels.txt")
-    labelsOut.write(labels.labels.mkString("\n").getBytes("UTF-8"))
+    val (labelsOut, labelsA) = modelPersistor.getOutputStream(s"${tem.id}-labels.txt")
+    labelsOut.write(tem.labels.labels.mkString("\n").getBytes("UTF-8"))
     labelsOut.close()
 
-    val (confusionMatrixOut, confusionMatrixA) = getOutputStream(rootDirectory, s"$id-cm.csv")
-    modelEvaluation.saveConfusionMatrixAsCSV(labels, new BufferedWriter(new OutputStreamWriter(confusionMatrixOut)))
+    val (confusionMatrixOut, confusionMatrixA) = modelPersistor.getOutputStream(s"${tem.id}-cm.csv")
+    tem.evaluation.saveConfusionMatrixAsCSV(tem.labels, new BufferedWriter(new OutputStreamWriter(confusionMatrixOut)))
     confusionMatrixOut.close()
 
-    val (evaluationOut, evaluationA) = getOutputStream(rootDirectory, s"$id-evaluation.csv")
-    modelEvaluation.saveEvaluationAsCSV(new BufferedWriter(new OutputStreamWriter(evaluationOut)))
+    val (evaluationOut, evaluationA) = modelPersistor.getOutputStream(s"${tem.id}-evaluation.csv")
+    tem.evaluation.saveEvaluationAsCSV(new BufferedWriter(new OutputStreamWriter(evaluationOut)))
     evaluationOut.close()
 
     PersistedModel(configurationA, paramsA, labelsA, evaluationA, confusionMatrixA)

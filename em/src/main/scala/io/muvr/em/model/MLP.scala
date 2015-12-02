@@ -14,7 +14,7 @@ import org.nd4j.linalg.lossfunctions.LossFunctions
 
 object MLP {
 
-  def shallowModel: ModelTemplate = ModelTemplate("smlp@" + UUID.randomUUID().toString, newShallowModel, ModelPreprocessing.None)
+  def shallowModel: ModelTemplate = ModelTemplate("smlp@" + UUID.randomUUID().toString, newShallowModel)
 
   //noinspection ScalaDeprecation
   private def newShallowModel(numInputs: Int, numOutputs: Int): MultiLayerNetwork = {

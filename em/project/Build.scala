@@ -31,6 +31,12 @@ object Dependency {
     val all = Seq(core % "provided")
   }
 
+  object aws {
+    private val s3 = "com.amazonaws" % "aws-java-sdk-s3" % "1.10.37"
+
+    val all = Seq(s3)
+  }
+
   object dl4j {
     private val nd4jVersion         = "0.4-rc3.6"
     private val dl4jVersion         = "0.4-rc3.6"
@@ -56,7 +62,7 @@ object Dependency {
 object Dependencies {
   import Dependency._
 
-  val em = spark.all ++ dl4j.all
+  val em = spark.all ++ dl4j.all ++ aws.all
 }
 
 object EmBuild extends Build {

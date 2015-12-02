@@ -1,7 +1,5 @@
 package io.muvr.em
 
-import java.io.File
-
 import io.muvr.em.dataset.{ExerciseDataSetFile, Labels}
 import io.muvr.em.model.MLP
 import org.apache.spark.rdd.RDD
@@ -68,55 +66,53 @@ object ModelTrainerMain {
     *
     * @param train the names and content of the training files (CSVs)
     * @param test the names and content of the test files (CSVs)
-    * @param outputPath the directory to write the outputs to
     * @param modelTemplate the model template
     */
-  private def pipeline(train: LabelsAndEL, test: LabelsAndEL, outputPath: File)(modelTemplate: ModelTemplate): ModelEvaluation = {
+  private def pipeline(train: LabelsAndEL, test: LabelsAndEL)(modelTemplate: ModelTemplate): TrainedAndEvaluatedModel = {
     val batchSize = 50000
     val (testLabels, testExamplesAndLabels) = test
     val (trainLabels, trainExamplesAndLabels) = train
-    val model = modelTemplate.modelConstructor(numInputs, trainLabels.length)
+    val initialModel = modelTemplate.modelConstructor(numInputs, trainLabels.length)
     val id = modelTemplate.id
 
     // train
-    trainExamplesAndLabels
-//      .mapPartitions(_.grouped(batchSize).map(batchToExamplesAndLabelsMatrix))
-      .toLocalIterator.grouped(batchSize).map(batchToExamplesAndLabelsMatrix)
-      .foreach { case (examples, labels) ⇒ model.fit(examples, labels) }
+    val trainedModel = trainExamplesAndLabels
+      .coalesce(1)
+      .mapPartitions(_.grouped(batchSize).map(batchToExamplesAndLabelsMatrix).map((initialModel, _)))
+      .map { case (model, (examples, labels)) ⇒ model.fit(examples, labels); model }
+      .take(1)
+      .head
+
 
     // evaluate
     val evaluation = testExamplesAndLabels
       .mapPartitions(_.grouped(batchSize).map(batchToExamplesAndLabelsMatrix))
-//      .toLocalIterator.grouped(batchSize).map(batchToExamplesAndLabelsMatrix)
-      .map { case (examples, labels) ⇒ ModelEvaluation(model, examples, labels ) }
+      .map { case (examples, labels) ⇒ ModelEvaluation(trainedModel, examples, labels ) }
       .reduce(_ + _)
-
-    // persist model & its detail
-    ModelPersistor.persist(outputPath, id, model, testLabels, evaluation)
 
     // eyeball result
     println(s"Model $id")
     println(evaluation.toPrettyString(testLabels))
 
-    evaluation
+    TrainedAndEvaluatedModel(id, trainedModel, trainLabels, evaluation)
   }
 
   /**
     * Returns the label transform function depending on whether we're building exercise classifier
     * or exercise vs. slacking classifier
     *
-    * @param exercising true to build exercise classifier; false to build E vs. S classifier
+    * @param slacking true to build exercise classifier; false to build E vs. S classifier
     * @return the label transform
     */
-  private def buildLabelTransform(exercising: Boolean): LabelTransform = {
-    if (exercising) {
+  private def buildLabelTransform(slacking: Boolean): LabelTransform = {
+    if (slacking) {
+      case "" ⇒ Some("-")
+      case _ ⇒ Some("e")
+    } else {
       case "" ⇒ None
       case "triceps-dips" ⇒ None
       case "dumbbell-bench-press" ⇒ None
       case x ⇒ Some(x)
-    } else {
-      case "" ⇒ Some("-")
-      case _ ⇒ Some("e")
     }
   }
 
@@ -128,13 +124,13 @@ object ModelTrainerMain {
     val parser = new ArgumentParser(args)
 
     // parse required arguments
-    val Some(master)     = parser.get("master")
+    val master           = Option(System.getenv("spark.master")).getOrElse("local")
     val Some(model)      = parser.get("model")
     val Some(trainPath)  = parser.get("train-path")
     val Some(testPath)   = parser.get("test-path")
     val Some(outputPath) = parser.get("output-path")
     val labelTransform   = buildLabelTransform(parser.getOrElse("slacking", "") == "true")
-    val outputPathFile   = new File(outputPath); outputPathFile.mkdirs()
+    val persistor        = if (outputPath.startsWith("s3n://")) new S3ModelPersistor(outputPath) else new LocalFileModelPersistor(outputPath)
 
     // construct the Spark Context, run the training pipeline
     val name = "ModelTrainer"
@@ -147,8 +143,8 @@ object ModelTrainerMain {
     val train = parse(sc.wholeTextFiles(s"$trainPath/$model"), labelTransform)
     val test  = parse(sc.wholeTextFiles(s"$testPath/$model"),  labelTransform)
 
-    val bestModel = modelTemplates.map(pipeline(train, test, outputPathFile)).maxBy(_.score())
-    println(bestModel)
+    val evaluatedModels = modelTemplates.map(pipeline(train, test))
+    evaluatedModels.map(ModelPersistor(persistor)).foreach(println)
   }
 
 }

@@ -12,7 +12,7 @@ import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction
 
 object DBN {
 
-  val model: ModelTemplate = ModelTemplate("dbn", newModel, ModelPreprocessing.None)
+  val model: ModelTemplate = ModelTemplate("dbn", newModel)
 
   private def newModel(numInputs: Int, numOutputs: Int): MultiLayerNetwork = {
     val iterations = 10
