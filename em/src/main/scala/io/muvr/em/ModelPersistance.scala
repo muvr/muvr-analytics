@@ -5,20 +5,51 @@ import java.net.URL
 
 import org.nd4j.linalg.factory.Nd4j
 
+/**
+  * The persisted model detail carrying the handles to all resources that were produced
+  *
+  * @param configuration the model configuration
+  * @param params the model parameters (weights, biases, ...)
+  * @param labels the labels
+  * @param evaluation the evaluation (accuracy, precision, ...)
+  * @param confusionMatrix the confusion matrix
+  * @tparam Handle the handle to find the resource (e.g. ``File`` or ``URL``)
+  */
 case class PersistedModel[Handle](configuration: Handle, params: Handle, labels: Handle, evaluation: Handle, confusionMatrix: Handle)
 
+/**
+  * Defines the persistence mechanism
+  */
 trait ModelPersistor {
+  /**
+    * The type this persistor produces
+    */
   type Handle
-  def getOutputStream(name: String): (OutputStream, Handle)
+
+  /**
+    * Gets the output given its ``name``. The implementations _must_ call ``close()`` on the returned ``OutputStream``.
+    *
+    * @param name the name of the resource to create
+    * @return the pair of ``OutputStream`` that can receive the bytes for the resource and the handle for it
+    */
+  def getOutput(name: String): (OutputStream, Handle)
 }
 
+/**
+  * S3 target
+  * @param bucket the bucket name
+  */
 class S3ModelPersistor(bucket: String) extends ModelPersistor {
   type Handle = URL
 
-  def getOutputStream(name: String): (OutputStream, Handle) = ???
+  def getOutput(name: String): (OutputStream, Handle) = ???
 
 }
 
+/**
+  * Local file-based persistor
+  * @param rootDirectory the base / root directory. If it does not exist, it will be created.
+  */
 class LocalFileModelPersistor(rootDirectory: String) extends ModelPersistor {
   private val rootDirectoryFile = {
     val f = new File(rootDirectory)
@@ -28,7 +59,7 @@ class LocalFileModelPersistor(rootDirectory: String) extends ModelPersistor {
 
   type Handle = File
 
-  def getOutputStream(name: String): (OutputStream, Handle) = {
+  def getOutput(name: String): (OutputStream, Handle) = {
     val file = new File(rootDirectoryFile, name)
     (new FileOutputStream(file), file)
   }
@@ -38,22 +69,22 @@ class LocalFileModelPersistor(rootDirectory: String) extends ModelPersistor {
 object ModelPersistor {
 
   def apply(modelPersistor: ModelPersistor)(tem: TrainedAndEvaluatedModel): PersistedModel[modelPersistor.Handle] = {
-    val (paramsOut, paramsA) = modelPersistor.getOutputStream(s"${tem.id}-params.raw")
+    val (paramsOut, paramsA) = modelPersistor.getOutput(s"${tem.id}-params.raw")
     Nd4j.write(tem.model.params(), new DataOutputStream(paramsOut))
 
-    val (configurationOut, configurationA) = modelPersistor.getOutputStream(s"${tem.id}-configuration.json")
+    val (configurationOut, configurationA) = modelPersistor.getOutput(s"${tem.id}-configuration.json")
     configurationOut.write(tem.model.conf().toJson.getBytes("UTF-8"))
     configurationOut.close()
 
-    val (labelsOut, labelsA) = modelPersistor.getOutputStream(s"${tem.id}-labels.txt")
+    val (labelsOut, labelsA) = modelPersistor.getOutput(s"${tem.id}-labels.txt")
     labelsOut.write(tem.labels.labels.mkString("\n").getBytes("UTF-8"))
     labelsOut.close()
 
-    val (confusionMatrixOut, confusionMatrixA) = modelPersistor.getOutputStream(s"${tem.id}-cm.csv")
+    val (confusionMatrixOut, confusionMatrixA) = modelPersistor.getOutput(s"${tem.id}-cm.csv")
     tem.evaluation.saveConfusionMatrixAsCSV(tem.labels, new BufferedWriter(new OutputStreamWriter(confusionMatrixOut)))
     confusionMatrixOut.close()
 
-    val (evaluationOut, evaluationA) = modelPersistor.getOutputStream(s"${tem.id}-evaluation.csv")
+    val (evaluationOut, evaluationA) = modelPersistor.getOutput(s"${tem.id}-evaluation.csv")
     tem.evaluation.saveEvaluationAsCSV(new BufferedWriter(new OutputStreamWriter(evaluationOut)))
     evaluationOut.close()
 
