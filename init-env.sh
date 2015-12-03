@@ -24,7 +24,7 @@ make sysinstall
 cd -
 
 # Install mlp
-cd mlp
+cd python-analytics
 python setup.py install
 cd -
 

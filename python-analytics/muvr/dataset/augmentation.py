@@ -1,7 +1,7 @@
 """Create new examples from existing one reproducing natural variation in the data"""
 
 import numpy as np
-from training.examples import ExampleColl
+from muvr.dataset.examples import ExampleColl
 import logging
 
 
@@ -24,8 +24,9 @@ class SignalAugmenter(object):
             if np.shape(features)[1] >= target_feature_length:
                 label = examples.labels[i]
                 one_augmented = self.augment_example(features, target_feature_length)
-                augmented.append(one_augmented)
-                augmented_labels.extend([label] * one_augmented.shape[0])
+                factor = 1 if label == 0 else 1
+                augmented.extend([one_augmented] * factor)
+                augmented_labels.extend([label] * one_augmented.shape[0] * factor)
             else:
                 self.logger.warn("Dropped an example because it was to short. Length: %d Expected: %d" % 
                                  (np.shape(features)[1], target_feature_length))

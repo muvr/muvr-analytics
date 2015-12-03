@@ -2,7 +2,7 @@
 
 usage()
 {
-python mlp/start_training.py -h
+python python-analytics/start_training.py -h
 }
 
 DATASET="dataset/*.zip"
@@ -58,14 +58,14 @@ printf "\n\nSTART TRAINING & EVALUATION with parameter:\n\tDataset: %s\n\tTest: 
 
 if ! [ -z $IS_ANALYSIS ]
 then
-    python mlp/start_training.py -d $DATASET -o $OUTPUT -e $EVAL -v $VISUAL -m $MODEL_NAME -loop $EPOCH -analysis | tee $LOG_FILE
+    python python-analytics/start_training.py -d $DATASET -o $OUTPUT -e $EVAL -v $VISUAL -m $MODEL_NAME -loop $EPOCH -analysis | tee $LOG_FILE
 else
     remove_output
     if [ -z $TEST_FOLDER ]
     then
-        python mlp/start_training.py -d $DATASET -o $OUTPUT -e $EVAL -v $VISUAL -m $MODEL_NAME -loop $EPOCH | tee $LOG_FILE
+        python python-analytics/start_training.py -d $DATASET -o $OUTPUT -e $EVAL -v $VISUAL -m $MODEL_NAME -loop $EPOCH | tee $LOG_FILE
     else
-        python mlp/start_training.py -d $DATASET -o $OUTPUT -e $EVAL -v $VISUAL -t $TEST_FOLDER -m $MODEL_NAME -loop $EPOCH | tee $LOG_FILE
+        python python-analytics/start_training.py -d $DATASET -o $OUTPUT -e $EVAL -v $VISUAL -t $TEST_FOLDER -m $MODEL_NAME -loop $EPOCH | tee $LOG_FILE
     fi
     EXIT_CODE=$?
     if [[ $EXIT_CODE != 0 ]]

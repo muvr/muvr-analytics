@@ -5,10 +5,9 @@ import numpy as np
 import csv
 
 from sklearn.metrics import confusion_matrix
-from training.acceleration_dataset import CSVAccelerationDataset
-from training.mlp_model import MLPMeasurementModelTrainer
-from training.default_model import DefaultModel
-from converters import neon2iosmlp
+from muvr.dataset.acceleration_dataset import CSVAccelerationDataset
+from muvr.training.trainer import MLPMeasurementModelTrainer
+from muvr.converters import neon2iosmlp
 from pylab import *
 
 
