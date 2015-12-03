@@ -123,6 +123,12 @@ object ModelTrainerMain {
     * @param args the args
     */
   def main(args: Array[String]): Unit = {
+    val (s, h) = new S3ModelPersistor("s3n://AKIAIE55HIA7FQHRCJLQ:4c9DK1g1GNP78YzLRun048GiWOUn+8kxSpMw3fA7@muvr-open-training-data/models").getOutput("foo")
+    s.write(65)
+    s.close()
+    println(h)
+    return
+
     val parser = new NaiveArgumentParser(args)
 
     // parse required arguments
@@ -132,7 +138,7 @@ object ModelTrainerMain {
     val Some(testPath)   = parser.get("test-path")
     val Some(outputPath) = parser.get("output-path")
     val labelTransform   = buildLabelTransform(parser.getOrElse("slacking", "") == "true")
-    val persistor        = if (outputPath.startsWith("s3n://")) new S3ModelPersistor(outputPath, " ", " ") else new LocalFileModelPersistor(outputPath)
+    val persistor        = if (outputPath.startsWith("s3n://")) new S3ModelPersistor(outputPath) else new LocalFileModelPersistor(outputPath)
 
     // construct the Spark Context, run the training pipeline
     val name = "ModelTrainer"
@@ -141,6 +147,7 @@ object ModelTrainerMain {
       setAppName(name).
       set("spark.app.id", name)
     val sc = new SparkContext(conf)
+    sc.hadoopConfiguration.get("")
 
     val train = parse(sc.wholeTextFiles(s"$trainPath/$model"), labelTransform)
     val test  = parse(sc.wholeTextFiles(s"$testPath/$model"),  labelTransform)

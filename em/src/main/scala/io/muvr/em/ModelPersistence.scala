@@ -39,9 +39,16 @@ trait ModelPersistor {
 
 /**
   * S3 target
-  * @param bucket the bucket name
+  * @param s3Path the path in form ``s3n://``, ``bucket-name``, ``/prefix``
   */
-class S3ModelPersistor(bucket: String, awsAccessKey: String, awsSecretAccessKey: String) extends ModelPersistor {
+class S3ModelPersistor(s3Path: String) extends ModelPersistor {
+  private val (awsAccessKey, awsSecretAccessKey, bucketName, bucketPrefix) = {
+    val p = """s3n://(.*):(.*)@?([^/]+)/?(.*)""".r
+    s3Path match {
+      case p(ak, ask, b, bp) ⇒ (ak, ask, b, bp)
+     }
+  }
+
   private lazy val credentials = new BasicAWSCredentials(awsAccessKey, awsSecretAccessKey)
   private lazy val client = new AmazonS3Client(credentials)
 
@@ -50,7 +57,7 @@ class S3ModelPersistor(bucket: String, awsAccessKey: String, awsSecretAccessKey:
     val fos = new FileOutputStream(tempFile)
 
     override def close(): Unit = {
-      client.putObject(bucket, name, tempFile)
+      client.putObject(bucketName, s"$bucketPrefix/$name", tempFile)
       fos.close()
     }
 
@@ -60,7 +67,7 @@ class S3ModelPersistor(bucket: String, awsAccessKey: String, awsSecretAccessKey:
   type Handle = URL
 
   def getOutput(name: String): (OutputStream, Handle) = {
-    val handle = new URL("s3", "s3.amazonmagic.com", "foo")
+    val handle = new URL("https", "s3-eu-west-1.amazonaws.com", s"$bucketName/$bucketPrefix/$name")
     (new AWSOutputStream(name), handle)
   }
 
