@@ -66,9 +66,10 @@ object ModelTrainerMain {
     *
     * @param train the names and content of the training files (CSVs)
     * @param test the names and content of the test files (CSVs)
+    * @param persistor the function that will be used to persist
     * @param modelTemplate the model template
     */
-  private def pipeline(train: LabelsAndEL, test: LabelsAndEL)(modelTemplate: ModelTemplate): TrainedAndEvaluatedModel = {
+  private def pipeline[A](train: LabelsAndEL, test: LabelsAndEL, persistor: ModelPersistor.Type[A])(modelTemplate: ModelTemplate): PersistedModel[A] = {
     val batchSize = 50000
     val (testLabels, testExamplesAndLabels) = test
     val (trainLabels, trainExamplesAndLabels) = train
@@ -94,7 +95,8 @@ object ModelTrainerMain {
     println(s"Model $id")
     println(evaluation.toPrettyString(testLabels))
 
-    TrainedAndEvaluatedModel(id, trainedModel, trainLabels, evaluation)
+    // save
+    persistor(TrainedAndEvaluatedModel(id, trainedModel, trainLabels, evaluation))
   }
 
   /**
@@ -121,7 +123,7 @@ object ModelTrainerMain {
     * @param args the args
     */
   def main(args: Array[String]): Unit = {
-    val parser = new ArgumentParser(args)
+    val parser = new NaiveArgumentParser(args)
 
     // parse required arguments
     val master           = Option(System.getenv("spark.master")).getOrElse("local")
@@ -143,8 +145,8 @@ object ModelTrainerMain {
     val train = parse(sc.wholeTextFiles(s"$trainPath/$model"), labelTransform)
     val test  = parse(sc.wholeTextFiles(s"$testPath/$model"),  labelTransform)
 
-    val evaluatedModels = modelTemplates.map(pipeline(train, test))
-    evaluatedModels.map(ModelPersistor(persistor)).foreach(println)
+    val evaluatedModels = modelTemplates.map(pipeline(train, test, ModelPersistor(persistor)))
+    evaluatedModels.foreach(println)
   }
 
 }

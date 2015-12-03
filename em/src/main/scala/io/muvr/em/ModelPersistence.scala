@@ -88,6 +88,8 @@ class LocalFileModelPersistor(rootDirectory: String) extends ModelPersistor {
 
 object ModelPersistor {
 
+  type Type[Handle] = TrainedAndEvaluatedModel ⇒ PersistedModel[Handle]
+
   def apply(modelPersistor: ModelPersistor)(tem: TrainedAndEvaluatedModel): PersistedModel[modelPersistor.Handle] = {
     val (paramsOut, paramsA) = modelPersistor.getOutput(s"${tem.id}-params.raw")
     Nd4j.write(tem.model.params(), new DataOutputStream(paramsOut))
