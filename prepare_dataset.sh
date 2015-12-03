@@ -2,12 +2,12 @@
 
 usage()
 {
-python mlp/preprocess_data.py -h
+python python-analytics/preprocess_data.py -h
 }
 
 DATASET="dataset/*.zip"
 OUTPUT="output"
-TRAIN_RATIO=80
+TRAIN_RATIO=100
 IS_SLACKING=
 
 while getopts "hd:o:r:s" OPTION
@@ -43,7 +43,7 @@ printf "\n\nPreprocess the dataset with parameter:\n\tDataset: %s\n\tOutput: %s\
 
 if [ -z $IS_SLACKING ]
 then
-    python mlp/preprocess_data.py -d $DATASET -o $OUTPUT -ratio $TRAIN_RATIO | tee $LOG_FILE
+    python python-analytics/preprocess_data.py -d $DATASET -o $OUTPUT -ratio $TRAIN_RATIO | tee $LOG_FILE
 else
-    python mlp/preprocess_data.py -d $DATASET -o $OUTPUT -ratio $TRAIN_RATIO -slacking | tee $LOG_FILE
+    python python-analytics/preprocess_data.py -d $DATASET -o $OUTPUT -ratio $TRAIN_RATIO -slacking | tee $LOG_FILE
 fi

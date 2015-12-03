@@ -8,6 +8,8 @@ from sklearn.metrics import confusion_matrix
 from muvr.dataset.acceleration_dataset import CSVAccelerationDataset
 from muvr.training.trainer import MLPMeasurementModelTrainer
 from muvr.converters import neon2iosmlp
+from muvr.training.default_models import generate_default_activity_model
+from muvr.training.default_models import generate_default_exercise_model
 from pylab import *
 
 
@@ -55,10 +57,10 @@ def learn_model_from_data(dataset, working_directory, model_name, epoch):
 
     if model_name == "slacking":
         print "Using slacking model"
-        model = DefaultModel.get_slacking_model(dataset.num_labels)
+        model = generate_default_activity_model(dataset.num_labels)
     else:
         print "Using default model"
-        model = model_trainer.generate_default_model(dataset.num_labels)
+        model = generate_default_exercise_model(dataset.num_labels)
 
     trained_model = model_trainer.train(dataset, model)
 

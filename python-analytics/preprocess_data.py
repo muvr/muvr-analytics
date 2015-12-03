@@ -5,8 +5,8 @@ import zipfile
 import csv
 import tempfile
 
-from training.acceleration_dataset import CSVAccelerationDataset
-from training.examples import ExampleColl
+from muvr.dataset.acceleration_dataset import CSVAccelerationDataset
+from muvr.dataset.examples import ExampleColl
 
 mapping_exercise = {
     "arms_bicep-curl" : ["arms/bicep-curl", "bc", "bicep", "bicep curls", "biceps curls (left)"],
@@ -129,9 +129,9 @@ def main(dataset_directory, output_directory, ratio, is_slacking):
         if is_slacking and label_data.labels[0] != NO_EXERCISE_LABEL:
             # training for slacking model, reset all label (bicep, tricep, ..) to exercise
             label_data.reset_all_labels("exercise")
-        elif not is_slacking and label_data.labels[0] == NO_EXERCISE_LABEL:
-            # training for exercise model, remove dataset with non-exercise label
-            continue
+        # elif not is_slacking and label_data.labels[0] == NO_EXERCISE_LABEL:
+        #     # training for exercise model, remove dataset with non-exercise label
+        #     continue
 
         if label_data.labels[0] in ignore_exercise:
             print "Ignore this exercise:", label_data.labels[0]
@@ -158,7 +158,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Preprocess the exercise dataset.')
     parser.add_argument('-d', metavar='dataset', type=str, help="folder containing exercise dataset")
     parser.add_argument('-o', metavar='output', default='./output', type=str, help="folder containing generated model")
-    parser.add_argument('-ratio', metavar='ratio', default=80, type=int, help="train ratio")
+    parser.add_argument('-ratio', metavar='ratio', default=100, type=int, help="train ratio")
     parser.add_argument('-slacking', action='store_true', default=False)
     args = parser.parse_args()
 
