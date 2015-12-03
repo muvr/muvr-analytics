@@ -24,8 +24,8 @@ def plot_examples(dataset, plot_ids):
         c = np.random.random((3,))
     
         ax1.plot(range(0, dataset.num_features / 3), dataset.X_train[i,0:1200:3], '-o', c=c)
-        ax2.plot(range(0, dataset.num_features / 3), dataset.X_train[i,0:1200:3], '-o', c=c)
-        ax3.plot(range(0, dataset.num_features / 3), dataset.X_train[i,0:1200:3], '-o', c=c)
+        ax2.plot(range(0, dataset.num_features / 3), dataset.X_train[i,1:1200:3], '-o', c=c)
+        ax3.plot(range(0, dataset.num_features / 3), dataset.X_train[i,2:1200:3], '-o', c=c)
     
     legend(map(label_of_example, plot_ids))
     suptitle('Feature values for the first three training examples', fontsize=16)

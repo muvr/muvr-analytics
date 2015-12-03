@@ -22,7 +22,8 @@ def remove_if_exists(filename):
         else:
             raise
 
-def closestSqrt(i):
+def closest_sqrt(i):
+    """Find the two factors that multiplied result in i and are closest to sqrt(i)."""
     N = int(math.sqrt(i))
     while True:
         M = int(i / N)

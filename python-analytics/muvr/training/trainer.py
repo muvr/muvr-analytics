@@ -42,6 +42,10 @@ class MLPMeasurementModelTrainer(object):
             dslogger.setLevel(40)
 
         print 'Epochs: %d Batch-Size: %d' % (self.max_epochs, self.batch_size)
+        
+    def generate_default_model(self, num_labels):
+        import default_models
+        return default_models.generate_default_exercise_model(num_labels)
 
     def train(self, dataset, model=None):
         """Trains the passed model on the given dataset. If no model is passed, `generate_default_model` is used."""

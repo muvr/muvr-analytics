@@ -31,7 +31,7 @@ def dataset_statistics(dataset):
     for i, s in enumerate(human_labels):
         table[i + 1][0] = s
     
-    table.sort(lambda x, y: cmp(x[1], y[1]))
+    table.sort(lambda x, y: cmp(x[5], y[5]))
     
     table[0][0] = ""
     table[0][1] = "Train"
