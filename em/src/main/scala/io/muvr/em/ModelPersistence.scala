@@ -42,6 +42,8 @@ trait ModelPersistor {
   * @param s3Path the path in form ``s3n://``, ``bucket-name``, ``/prefix``
   */
 class S3ModelPersistor(s3Path: String) extends ModelPersistor {
+
+  /** Parses the ``s3Path`` into the appropriate elements */
   private val (awsAccessKey, awsSecretAccessKey, bucketName, bucketPrefix) = {
     val p = """s3n://(.*):(.*)@([^/]+)/?(.*)""".r
     s3Path match {
@@ -49,9 +51,17 @@ class S3ModelPersistor(s3Path: String) extends ModelPersistor {
      }
   }
 
+  /** Credentials from the parsed elements */
   private lazy val credentials = new BasicAWSCredentials(awsAccessKey, awsSecretAccessKey)
+  /** The S3 client */
   private lazy val client = new AmazonS3Client(credentials)
 
+  /**
+    * An implementation of the ``OutputStream``, which uploads the saved contents
+    * on ``close()``.
+    *
+    * @param name the "file" name
+    */
   private class AWSOutputStream(name: String) extends OutputStream {
     val tempFile = File.createTempFile(name, name)
     val fos = new FileOutputStream(tempFile)
@@ -78,9 +88,11 @@ class S3ModelPersistor(s3Path: String) extends ModelPersistor {
   * @param rootDirectory the base / root directory. If it does not exist, it will be created.
   */
 class LocalFileModelPersistor(rootDirectory: String) extends ModelPersistor {
+  /** Reference to the existing root directory */
   private val rootDirectoryFile = {
     val f = new File(rootDirectory)
     f.mkdirs()
+    require(f.exists(), s"The output directory $f does not exist and could not be created.")
     f
   }
 
@@ -93,10 +105,27 @@ class LocalFileModelPersistor(rootDirectory: String) extends ModelPersistor {
 
 }
 
+/**
+  * Companion object for the persistor; given an instance of the trait, constructs a
+  * ``ModelPersistor.Type``, which is a function that performs the required save
+  * operation.
+  */
 object ModelPersistor {
 
+  /**
+    * The save function for the given handle type
+    * @tparam Handle the handle type
+    */
   type Type[Handle] = TrainedAndEvaluatedModel ⇒ PersistedModel[Handle]
 
+  /**
+    * Given an instance of ``ModelPersistor``, return the ``ModelPersistor.Type[Handle]``, where
+    * ``Handle`` is the ``Handle`` member of the ``modelPersistor`` instance.
+    *
+    * @param modelPersistor the model persistor instance
+    * @param tem the TEM
+    * @return handles to all saved elements of ``tem``
+    */
   def apply(modelPersistor: ModelPersistor)(tem: TrainedAndEvaluatedModel): PersistedModel[modelPersistor.Handle] = {
     val (paramsOut, paramsA) = modelPersistor.getOutput(s"${tem.id}-params.raw")
     Nd4j.write(tem.model.params(), new DataOutputStream(paramsOut))
