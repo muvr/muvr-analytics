@@ -43,7 +43,7 @@ trait ModelPersistor {
   */
 class S3ModelPersistor(s3Path: String) extends ModelPersistor {
   private val (awsAccessKey, awsSecretAccessKey, bucketName, bucketPrefix) = {
-    val p = """s3n://(.*):(.*)@?([^/]+)/?(.*)""".r
+    val p = """s3n://(.*):(.*)@([^/]+)/?(.*)""".r
     s3Path match {
       case p(ak, ask, b, bp) ⇒ (ak, ask, b, bp)
      }

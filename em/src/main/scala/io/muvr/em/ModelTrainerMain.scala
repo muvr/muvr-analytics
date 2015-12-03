@@ -123,12 +123,6 @@ object ModelTrainerMain {
     * @param args the args
     */
   def main(args: Array[String]): Unit = {
-    val (s, h) = new S3ModelPersistor("s3n://AKIAIE55HIA7FQHRCJLQ:4c9DK1g1GNP78YzLRun048GiWOUn+8kxSpMw3fA7@muvr-open-training-data/models").getOutput("foo")
-    s.write(65)
-    s.close()
-    println(h)
-    return
-
     val parser = new NaiveArgumentParser(args)
 
     // parse required arguments
