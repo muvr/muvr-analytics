@@ -7,7 +7,7 @@ TRAINING_DATA_DIR="muvr-open-training-data"
 EM_JAR=target/scala-2.10/em-assembly-1.0.0-SNAPSHOT.jar
 
 # Spark master public DNS
-SPARK_MASTER=ec2-54-154-183-184.eu-west-1.compute.amazonaws.com
+SPARK_MASTER=ec2-54-171-91-58.eu-west-1.compute.amazonaws.com
 
 # AWS key pair PEM path"
 AWS_KEY_PAIR=~/Downloads/scalax-jan-test.pem
@@ -19,7 +19,7 @@ AWS_ACCESS_KEY_ID=AKIAIWGORVA3QVK54PMA
 AWS_SECRET_ACCESS_KEY=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
 
 # Copy JAR with Spark job to Spark master
-scp -i $AWS_KEY_PAIR $EM_JAR root@ec2-54-154-183-184.eu-west-1.compute.amazonaws.com:~/em.jar
+scp -i $AWS_KEY_PAIR $EM_JAR root@$SPARK_MASTER:~/em.jar
 
 # Sync the Spark job accorss all slaves
 ssh -i $AWS_KEY_PAIR root@$SPARK_MASTER "/root/spark-ec2/copy-dir em.jar"
