@@ -25,4 +25,4 @@ scp -i $AWS_KEY_PAIR $EM_JAR root@$SPARK_MASTER:~/em.jar
 ssh -i $AWS_KEY_PAIR root@$SPARK_MASTER "/root/spark-ec2/copy-dir em.jar"
 
 # Submit the spark job to the master
-ssh -i $AWS_KEY_PAIR root@$SPARK_MASTER "/root/spark/bin/spark-submit --class io.muvr.em.ModelTrainerMain --deploy-mode=cluster --driver-memory 10G --driver-cores 36 /root/em.jar --model arms --train-path s3n://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$TRAINING_DATA_DIR/train --test-path s3n://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$TRAINING_DATA_DIR/test --output-path /tmp/models"
+ssh -i $AWS_KEY_PAIR root@$SPARK_MASTER "/root/spark/bin/spark-submit --class io.muvr.em.ModelTrainerMain --deploy-mode=cluster --driver-memory 10G --driver-cores 36 /root/em.jar --model arms --train-path s3n://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$TRAINING_DATA_DIR/train --test-path s3n://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$TRAINING_DATA_DIR/test --output-path s3n://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$TRAINING_DATA_DIR/models"
