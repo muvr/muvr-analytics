@@ -126,16 +126,16 @@ def main(dataset_directory, output_directory, ratio, is_slacking):
     training = []
     test = []
     for label_data in dataset:
-        if is_slacking and label_data.labels[0] != NO_EXERCISE_LABEL:
+        # if is_slacking and label_data.labels[0] != NO_EXERCISE_LABEL:
             # training for slacking model, reset all label (bicep, tricep, ..) to exercise
-            label_data.reset_all_labels("exercise")
+            # label_data.reset_all_labels("exercise")
         # elif not is_slacking and label_data.labels[0] == NO_EXERCISE_LABEL:
         #     # training for exercise model, remove dataset with non-exercise label
         #     continue
 
-        if label_data.labels[0] in ignore_exercise:
-            print "Ignore this exercise:", label_data.labels[0]
-            continue
+        # if label_data.labels[0] in ignore_exercise:
+        #     print "Ignore this exercise:", label_data.labels[0]
+        #     continue
 
         first, second = label_data.split(ratio/100.0)
         training.append(first)
