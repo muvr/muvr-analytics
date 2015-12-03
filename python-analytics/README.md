@@ -13,5 +13,11 @@ python setup.py install
 Run the analysis using
 
 ```bash
-python muvr/start_analysis.py
+python start_analysis.py
+```
+
+or using
+
+```bash
+python start_training.py -m core -d ../../muvr-training-data/labelled/core -o ../output/ -v ../output/v.png -e  ../output/e.csv
 ```
