@@ -13,5 +13,5 @@ python setup.py install
 Run the analysis using
 
 ```bash
-python anaylsis/start_analysis.py
+python muvr/start_analysis.py
 ```

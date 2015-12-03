@@ -1,5 +1,6 @@
 import os
 import errno
+import math
 
 
 def get_bytes_from_file(filename):
@@ -20,3 +21,13 @@ def remove_if_exists(filename):
             pass
         else:
             raise
+
+def closest_sqrt(i):
+    """Find the two factors that multiplied result in i and are closest to sqrt(i)."""
+    N = int(math.sqrt(i))
+    while True:
+        M = int(i / N)
+        if N * M == i:
+            return N, M
+
+        N -= 1

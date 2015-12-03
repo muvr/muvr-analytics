@@ -1,17 +1,14 @@
 import logging
 import time
-
 import os
 from neon.backends import gen_backend
 from neon.callbacks.callbacks import Callbacks
-from neon.initializers import Uniform, Constant
-from neon.layers import Affine, Dropout, GeneralizedCost, Linear, Activation
-from neon.models import Model
+from neon.layers import GeneralizedCost, Linear, Activation
 from neon.optimizers import GradientDescentMomentum
 from neon.transforms import Misclassification
-from neon.transforms import Rectlin, Tanh, Logistic
 from neon.transforms.cost import CrossEntropyMulti
-from training import utils
+from muvr.util import utils
+import shutil
 
 
 class NeonCallbackParameters(object):
@@ -45,51 +42,10 @@ class MLPMeasurementModelTrainer(object):
             dslogger.setLevel(40)
 
         print 'Epochs: %d Batch-Size: %d' % (self.max_epochs, self.batch_size)
-
+        
     def generate_default_model(self, num_labels):
-        """Generate layers and a MLP model using the given settings."""
-        init_norm = Uniform(low=-0.1, high=0.1)
-        bias_init = Constant(val=1.0)
-
-        layers = []
-        layers.append(Affine(
-            nout=500,
-            init=init_norm,
-            bias=bias_init,
-            activation=Rectlin()))
-
-        layers.append(Dropout(
-            name="do_1",
-            keep=0.9))
-    
-        layers.append(Affine(
-            nout=250,
-            init=init_norm,
-            bias=bias_init,
-            activation=Tanh()))
-
-        layers.append(Dropout(
-            name="do_2",
-            keep=0.9))
-
-        layers.append(Affine(
-            nout=100,
-            init=init_norm,
-            bias=bias_init,
-            activation=Rectlin()))
-
-        layers.append(Dropout(
-            name="do_3",
-            keep=0.9))
-
-        layers.append(Affine(
-            nout=num_labels,
-            init=init_norm,
-            bias=bias_init,
-            activation=Logistic()))
-
-        model = Model(layers=layers)
-        return model
+        import default_models
+        return default_models.generate_default_exercise_model(num_labels)
 
     def train(self, dataset, model=None):
         """Trains the passed model on the given dataset. If no model is passed, `generate_default_model` is used."""
@@ -130,7 +86,7 @@ class MLPMeasurementModelTrainer(object):
         callbacks = Callbacks(model, dataset.train(), args, eval_set=dataset.test())
 
         # add a callback that saves the best model state
-        callbacks.add_save_best_state_callback(self.model_path)
+        # callbacks.add_save_best_state_callback(self.model_path)
 
         # Uncomment line below to run on GPU using cudanet backend
         # backend = gen_backend(rng_seed=0, gpu='cudanet')
@@ -145,16 +101,17 @@ class MLPMeasurementModelTrainer(object):
               % (model.eval(dataset.test(), metric=Misclassification()) * 100))
         print "Finished training!"
         end = time.time()
+        shutil.copyfile(os.path.join(self.root_path, self.Intermediate_Model_Filename + "_" + str(model.epoch_index-1)), self.model_path)
         print "Duration", end - start, "seconds"
 
         return model
 
     def layers(self, dataset, model):
-        layerconfig = [dataset.num_features]
-        layerconfig.append("id")
+        layer_config = [dataset.num_features]
+        layer_config.append("id")
         for layer in model.layers.layers:
             if isinstance(layer, Activation):
-                layerconfig.append(layer.transform.name)
+                layer_config.append(layer.transform.name)
             if isinstance(layer, Linear):
-                layerconfig.append(layer.nout)
-        return layerconfig
+                layer_config.append(layer.nout)
+        return layer_config
