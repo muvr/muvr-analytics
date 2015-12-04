@@ -29,12 +29,15 @@ trait ModelPersistor {
   type Handle
 
   /**
-    * Gets the output given its ``name``. The implementations _must_ call ``close()`` on the returned ``OutputStream``.
+    * Applies the function ``f`` to the ``OutputStream`` instance for the resource
+    * named ``name``. The output stream will be closed automatically.
     *
-    * @param name the name of the resource to create
-    * @return the pair of ``OutputStream`` that can receive the bytes for the resource and the handle for it
+    * @param name the resource name
+    * @param f the function that will be applied to the ``OutputStream`` for the resource
+    * @tparam A the return type of f
+    * @return the handle to the resource
     */
-  def getOutput(name: String): (OutputStream, Handle)
+  def using[A](name: String)(f: OutputStream ⇒ A): Handle
 }
 
 /**
@@ -76,9 +79,12 @@ class S3ModelPersistor(s3Path: String) extends ModelPersistor {
 
   type Handle = URL
 
-  def getOutput(name: String): (OutputStream, Handle) = {
+  def using[A](name: String)(f: OutputStream ⇒ A): Handle = {
     val handle = new URL("https", "s3-eu-west-1.amazonaws.com", s"$bucketName/$bucketPrefix/$name")
-    (new AWSOutputStream(name), handle)
+    val os = new AWSOutputStream(name)
+    f(os)
+    os.close()
+    handle
   }
 
 }
@@ -98,9 +104,12 @@ class LocalFileModelPersistor(rootDirectory: String) extends ModelPersistor {
 
   type Handle = File
 
-  def getOutput(name: String): (OutputStream, Handle) = {
+  def using[A](name: String)(f: OutputStream ⇒ A): Handle = {
     val file = new File(rootDirectoryFile, name)
-    (new FileOutputStream(file), file)
+    val os = new FileOutputStream(file)
+    f(os)
+    os.close()
+    file
   }
 
 }
@@ -114,7 +123,7 @@ object ModelPersistor {
 
   /**
     * The save function for the given handle type
-    * @tparam Handle the handle type
+    * :tparam Handle the handle type
     */
   type Type[Handle] = TrainedAndEvaluatedModel ⇒ PersistedModel[Handle]
 
@@ -127,26 +136,27 @@ object ModelPersistor {
     * @return handles to all saved elements of ``tem``
     */
   def apply(modelPersistor: ModelPersistor)(tem: TrainedAndEvaluatedModel): PersistedModel[modelPersistor.Handle] = {
-    val (paramsOut, paramsA) = modelPersistor.getOutput(s"${tem.id}-params.raw")
-    Nd4j.write(tem.model.params(), new DataOutputStream(paramsOut))
+    val params = modelPersistor.using(s"${tem.id}-params.raw") { out ⇒
+      Nd4j.write(tem.model.params(), new DataOutputStream(out))
+    }
 
-    val (configurationOut, configurationA) = modelPersistor.getOutput(s"${tem.id}-configuration.json")
-    configurationOut.write(tem.model.conf().toJson.getBytes("UTF-8"))
-    configurationOut.close()
+    val configuration = modelPersistor.using(s"${tem.id}-configuration.json") { out ⇒
+      out.write(tem.model.conf().toJson.getBytes("UTF-8"))
+    }
 
-    val (labelsOut, labelsA) = modelPersistor.getOutput(s"${tem.id}-labels.txt")
-    labelsOut.write(tem.labels.labels.mkString("\n").getBytes("UTF-8"))
-    labelsOut.close()
+    val labels = modelPersistor.using(s"${tem.id}-labels.txt") { out ⇒
+      out.write(tem.labels.labels.mkString("\n").getBytes("UTF-8"))
+    }
 
-    val (confusionMatrixOut, confusionMatrixA) = modelPersistor.getOutput(s"${tem.id}-cm.csv")
-    tem.evaluation.saveConfusionMatrixAsCSV(tem.labels, new BufferedWriter(new OutputStreamWriter(confusionMatrixOut)))
-    confusionMatrixOut.close()
+    val confusionMatrix = modelPersistor.using(s"${tem.id}-cm.csv") { out ⇒
+      tem.evaluation.saveConfusionMatrixAsCSV(tem.labels, new BufferedWriter(new OutputStreamWriter(out)))
+    }
 
-    val (evaluationOut, evaluationA) = modelPersistor.getOutput(s"${tem.id}-evaluation.csv")
-    tem.evaluation.saveEvaluationAsCSV(new BufferedWriter(new OutputStreamWriter(evaluationOut)))
-    evaluationOut.close()
+    val evaluation = modelPersistor.using(s"${tem.id}-evaluation.csv") { out ⇒
+      tem.evaluation.saveEvaluationAsCSV(new BufferedWriter(new OutputStreamWriter(out)))
+    }
 
-    PersistedModel(configurationA, paramsA, labelsA, evaluationA, confusionMatrixA)
+    PersistedModel(configuration, params, labels, evaluation, confusionMatrix)
   }
 
 }
