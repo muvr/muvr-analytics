@@ -33,8 +33,9 @@ object Dependency {
 
   object aws {
     private val s3 = "com.amazonaws" % "aws-java-sdk-s3" % "1.10.37"
+    private val jacksonDatabind = "com.fasterxml.jackson.core" % "jackson-databind" % "2.5.4"
 
-    val all = Seq(s3)
+    val all = Seq(s3, jacksonDatabind)
   }
 
   object dl4j {

@@ -54,6 +54,8 @@ class S3ModelPersistor(s3Path: String) extends ModelPersistor {
      }
   }
 
+  override lazy val toString: String = s"S3 to $bucketName/$bucketPrefix"
+
   /** Credentials from the parsed elements */
   private lazy val credentials = new BasicAWSCredentials(awsAccessKey, awsSecretAccessKey)
   /** The S3 client */

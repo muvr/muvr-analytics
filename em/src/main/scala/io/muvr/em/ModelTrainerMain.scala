@@ -134,6 +134,8 @@ object ModelTrainerMain {
     val labelTransform   = buildLabelTransform(parser.getOrElse("slacking", "") == "true")
     val persistor        = if (outputPath.startsWith("s3n://")) new S3ModelPersistor(outputPath) else new LocalFileModelPersistor(outputPath)
 
+    println(persistor)
+
     // construct the Spark Context, run the training pipeline
     val name = "ModelTrainer"
     val conf = new SparkConf().
