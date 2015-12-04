@@ -8,5 +8,5 @@ for M in "${MODELS[@]}"; do
     PARAMS="$COMMON_PARAMS --model $M"
     echo $PARAMS
     spark-submit --class io.muvr.em.ModelTrainerMain --driver-memory 4G target/scala-2.10/em-assembly-1.0.0-SNAPSHOT.jar $PARAMS &
-    spark-submit --class io.muvr.em.ModelTrainerMain --driver-memory 4G target/scala-2.10/em-assembly-1.0.0-SNAPSHOT.jar "$PARAMS --slacking=true" &
+    spark-submit --class io.muvr.em.ModelTrainerMain --driver-memory 4G target/scala-2.10/em-assembly-1.0.0-SNAPSHOT.jar $PARAMS --slacking=true &
 done
