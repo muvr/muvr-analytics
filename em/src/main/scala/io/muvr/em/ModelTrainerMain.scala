@@ -1,7 +1,5 @@
 package io.muvr.em
 
-import com.fasterxml.jackson.core.JsonParser
-import com.fasterxml.jackson.databind.ObjectMapper
 import io.muvr.em.dataset.{ExerciseDataSetFile, Labels}
 import io.muvr.em.model.MLP
 import org.apache.spark.rdd.RDD
