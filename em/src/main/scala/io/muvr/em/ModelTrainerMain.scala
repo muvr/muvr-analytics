@@ -131,7 +131,9 @@ object ModelTrainerMain {
     val Some(trainPath)  = parser.get("train-path")
     val Some(testPath)   = parser.get("test-path")
     val Some(outputPath) = parser.get("output-path")
-    val labelTransform   = buildLabelTransform(parser.getOrElse("slacking", "") == "true")
+    val slacking         = parser.getOrElse("slacking", "") == "true"
+    val prefix           = if (slacking) s"e-$model" else s"s-$model"
+    val labelTransform   = buildLabelTransform(slacking)
     val persistor        = if (outputPath.startsWith("s3n://")) new S3ModelPersistor(outputPath) else new LocalFileModelPersistor(outputPath)
 
     // construct the Spark Context, run the training pipeline
@@ -146,7 +148,7 @@ object ModelTrainerMain {
     val train = parse(sc.wholeTextFiles(s"$trainPath/$model"), labelTransform)
     val test  = parse(sc.wholeTextFiles(s"$testPath/$model"),  labelTransform)
 
-    val evaluatedModels = modelTemplates.map(pipeline(train, test, ModelPersistor(persistor)))
+    val evaluatedModels = modelTemplates.map(pipeline(train, test, ModelPersistor(prefix, persistor)))
     evaluatedModels.foreach(println)
   }
 

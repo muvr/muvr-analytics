@@ -133,28 +133,29 @@ object ModelPersistor {
     * Given an instance of ``ModelPersistor``, return the ``ModelPersistor.Type[Handle]``, where
     * ``Handle`` is the ``Handle`` member of the ``modelPersistor`` instance.
     *
+    * @param prefix the common prefix
     * @param modelPersistor the model persistor instance
     * @param tem the TEM
     * @return handles to all saved elements of ``tem``
     */
-  def apply(modelPersistor: ModelPersistor)(tem: TrainedAndEvaluatedModel): PersistedModel[modelPersistor.Handle] = {
-    val params = modelPersistor.using(s"${tem.id}-params.raw") { out ⇒
+  def apply(prefix: String, modelPersistor: ModelPersistor)(tem: TrainedAndEvaluatedModel): PersistedModel[modelPersistor.Handle] = {
+    val params = modelPersistor.using(s"$prefix-${tem.id}-params.raw") { out ⇒
       Nd4j.write(tem.model.params(), new DataOutputStream(out))
     }
 
-    val configuration = modelPersistor.using(s"${tem.id}-configuration.json") { out ⇒
+    val configuration = modelPersistor.using(s"$prefix-${tem.id}-configuration.json") { out ⇒
       out.write(tem.model.conf().toJson.getBytes("UTF-8"))
     }
 
-    val labels = modelPersistor.using(s"${tem.id}-labels.txt") { out ⇒
+    val labels = modelPersistor.using(s"$prefix-${tem.id}-labels.txt") { out ⇒
       out.write(tem.labels.labels.mkString("\n").getBytes("UTF-8"))
     }
 
-    val confusionMatrix = modelPersistor.using(s"${tem.id}-cm.csv") { out ⇒
+    val confusionMatrix = modelPersistor.using(s"$prefix-${tem.id}-cm.csv") { out ⇒
       tem.evaluation.saveConfusionMatrixAsCSV(tem.labels, new BufferedWriter(new OutputStreamWriter(out)))
     }
 
-    val evaluation = modelPersistor.using(s"${tem.id}-evaluation.csv") { out ⇒
+    val evaluation = modelPersistor.using(s"$prefix-${tem.id}-evaluation.csv") { out ⇒
       tem.evaluation.saveEvaluationAsCSV(new BufferedWriter(new OutputStreamWriter(out)))
     }
 
