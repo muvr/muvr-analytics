@@ -32,10 +32,11 @@ object Dependency {
   }
 
   object aws {
-    private val s3 = "com.amazonaws" % "aws-java-sdk-s3" % "1.10.37"
-    private val jacksonDatabind = "com.fasterxml.jackson.core" % "jackson-databind" % "2.5.4"
+    private val s3 = "com.amazonaws" % "aws-java-sdk-s3" % "1.10.37" intransitive()
+    private val core = "com.amazonaws" % "aws-java-sdk-core" % "1.10.37" intransitive()
+    private val jacksonDatabind = "com.fasterxml.jackson.core" % "jackson-databind" % "2.6.3"
 
-    val all = Seq(s3, jacksonDatabind)
+    val all = Seq(s3, core, jacksonDatabind)
   }
 
   object dl4j {
@@ -44,7 +45,7 @@ object Dependency {
 
     private val dl4jCore            = "org.deeplearning4j"                % "deeplearning4j-core"     % dl4jVersion intransitive()
     private val nd4jX86             = "org.nd4j"                          % "nd4j-x86"                % nd4jVersion intransitive()
-    private val jacksonDF           = "com.fasterxml.jackson.dataformat"  % "jackson-dataformat-yaml" % "2.5.4" intransitive()
+    private val jacksonDF           = "com.fasterxml.jackson.dataformat"  % "jackson-dataformat-yaml" % "2.6.3" intransitive()
     private val nd4jApi             = "org.nd4j"                          % "nd4j-api"                % nd4jVersion intransitive()
     private val nd4jBytebuddy       = "org.nd4j"                          % "nd4j-bytebuddy"          % nd4jVersion intransitive()
     private val bytebuddy           = "net.bytebuddy"                     % "byte-buddy"              % "0.7.2" intransitive()

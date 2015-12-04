@@ -1,5 +1,7 @@
 package io.muvr.em
 
+import com.fasterxml.jackson.core.JsonParser
+import com.fasterxml.jackson.databind.ObjectMapper
 import io.muvr.em.dataset.{ExerciseDataSetFile, Labels}
 import io.muvr.em.model.MLP
 import org.apache.spark.rdd.RDD
@@ -133,8 +135,6 @@ object ModelTrainerMain {
     val Some(outputPath) = parser.get("output-path")
     val labelTransform   = buildLabelTransform(parser.getOrElse("slacking", "") == "true")
     val persistor        = if (outputPath.startsWith("s3n://")) new S3ModelPersistor(outputPath) else new LocalFileModelPersistor(outputPath)
-
-    println(persistor)
 
     // construct the Spark Context, run the training pipeline
     val name = "ModelTrainer"

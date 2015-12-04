@@ -31,4 +31,4 @@ ssh -oStrictHostKeyChecking=no -i $AWS_KEY_PAIR root@$SPARK_MASTER "/root/spark-
 
 # Submit the spark job to the master
 #--output-path s3n://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$TRAINING_DATA_DIR/models
-ssh -i $AWS_KEY_PAIR root@$SPARK_MASTER "/root/spark/bin/spark-submit --class io.muvr.em.ModelTrainerMain --deploy-mode=cluster --driver-memory 6G --driver-cores 36 /root/em.jar --model arms --train-path s3n://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$TRAINING_DATA_DIR/train --test-path s3n://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$TRAINING_DATA_DIR/test --output-path s3n://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$TRAINING_DATA_DIR/models"
+ssh -i $AWS_KEY_PAIR root@$SPARK_MASTER "/root/spark/bin/spark-submit --class io.muvr.em.ModelTrainerMain --deploy-mode=cluster --driver-memory 6G --driver-cores 36 --driver-class-path /root/em.jar /root/em.jar --model arms --train-path s3n://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$TRAINING_DATA_DIR/train --test-path s3n://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$TRAINING_DATA_DIR/test --output-path s3n://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$TRAINING_DATA_DIR/models"
