@@ -70,8 +70,8 @@ class S3ModelPersistor(s3Path: String) extends ModelPersistor {
     val fos = new FileOutputStream(tempFile)
 
     override def close(): Unit = {
-      client.putObject(bucketName, s"$bucketPrefix/$name", tempFile)
       fos.close()
+      client.putObject(bucketName, s"$bucketPrefix/$name", tempFile)
     }
 
     override def write(b: Int): Unit = fos.write(b)
