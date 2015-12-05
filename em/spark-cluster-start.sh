@@ -22,7 +22,7 @@ AWS_AMI_ID=ami-7b14b208
 AWS_INSTANCE_TYPE=c4.8xlarge
 
 # AWS instance type for the spark cluster master machine
-AWS_MASTER_INSTANCE_TYPE=m3.large
+AWS_MASTER_INSTANCE_TYPE=c4.8xlarge
 
 echo "Building the JAR file for the job..."
 sbt clean assembly
