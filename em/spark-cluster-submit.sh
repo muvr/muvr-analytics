@@ -38,7 +38,7 @@ ssh -oStrictHostKeyChecking=no -i $AWS_KEY_PAIR root@$SPARK_MASTER "/root/spark-
 
 # Submit the spark job to the master
 for M in "${MODELS[@]}"; do
-  JOB="--class io.muvr.em.ModelTrainerMain --deploy-mode=cluster --driver-memory 6G --driver-cores 36 /root/em.jar"
+  JOB="--class io.muvr.em.ModelTrainerMain --deploy-mode=cluster --driver-memory 6G --driver-cores 8 /root/em.jar"
   PARAMS="--model $M --train-path s3n://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$TRAINING_DATA_DIR/train --test-path s3n://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$TRAINING_DATA_DIR/test --output-path s3n://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$TRAINING_DATA_DIR/models"
 
   # submit the exercise $M job
