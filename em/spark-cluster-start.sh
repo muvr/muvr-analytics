@@ -35,8 +35,7 @@ AWS_INSTANCE_TYPE=c4.2xlarge
 AWS_MASTER_INSTANCE_TYPE=c4.2xlarge
 
 echo "Building the JAR file for the job..."
-# sbt clean assembly
-
+sbt clean assembly
 echo "JAR for job is built!"
 
 export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
@@ -44,4 +43,5 @@ export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
 
 echo "Attempting to create Spark cluster"
 SLAVE_COUNT=10
-$SPARK_EC2_HOME/spark-ec2 -k scalax-jan-test -i $AWS_KEY_PAIR --instance-type=$AWS_INSTANCE_TYPE --ami=$AWS_AMI_ID --region=eu-west-1 --copy-aws-credentials -s $SLAVE_COUNT launch scalax-spark-cluster
+$SPARK_EC2_HOME/spark-ec2 -k scalax-jan-test -i $AWS_KEY_PAIR --master-instance-type=$AWS_MASTER_INSTANCE_TYPE --instance-type=$AWS_INSTANCE_TYPE --ami=$AWS_AMI_ID --region=eu-west-1 --copy-aws-credentials -s $SLAVE_COUNT launch scalax-spark-cluster
+
