@@ -142,7 +142,6 @@ object ModelTrainerMain {
       setAppName(name).
       set("spark.app.id", name)
     val sc = new SparkContext(conf)
-    sc.hadoopConfiguration.get("")
 
     val train = parse(sc.wholeTextFiles(s"$trainPath/$model"), labelTransform)
     val test  = parse(sc.wholeTextFiles(s"$testPath/$model"),  labelTransform)
