@@ -39,7 +39,7 @@ object ModelTrainerMain {
         }
     })
 
-    (Labels(labelNames), examplesAndLabels)
+    (Labels(labelNames), examplesAndLabels.repartition(1).cache())
   }
 
   /**
@@ -78,7 +78,6 @@ object ModelTrainerMain {
 
     // train
     val trainedModel = trainExamplesAndLabels
-      .coalesce(1)
       .mapPartitions(_.grouped(batchSize).map(batchToExamplesAndLabelsMatrix).map((initialModel, _)))
       .map { case (model, (examples, labels)) ⇒ model.fit(examples, labels); model }
       .take(1)

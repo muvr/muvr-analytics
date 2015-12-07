@@ -29,10 +29,10 @@ TRAINING_DATA_DIR="muvr-open-training-data"
 AWS_AMI_ID=ami-7b14b208
 
 # AWS instance type for the spark cluster slave machines
-AWS_INSTANCE_TYPE=c4.8xlarge
+AWS_INSTANCE_TYPE=c4.2xlarge
 
 # AWS instance type for the spark cluster master machine
-AWS_MASTER_INSTANCE_TYPE=c4.8xlarge
+AWS_MASTER_INSTANCE_TYPE=c4.2xlarge
 
 echo "Building the JAR file for the job..."
 # sbt clean assembly
