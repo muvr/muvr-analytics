@@ -1,27 +1,34 @@
 #!/bin/bash
+
+# This script, which lives in muvr-analytics/em, must have the following files
+# available (relative to muvr-analytics/em)
+# ../../aws.pem
+# ../../aws.profile
+
 die () {
     echo >&2 "$@"
     exit 1
 }
 
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+source "$DIR/../../aws.profile"
+
+# AWS key pair PEM path"
+AWS_KEY_PAIR=$DIR/../../aws.pem
+[ -f $AWS_KEY_PAIR ] || die "Missing $AWS_KEY_PAIR"
+
+# The models to train. The real Muvr system trains *different* models, this one only arms
+MODELS=( arms arms arms arms arms )
+
 # Where to locate the training data from
 TRAINING_DATA_DIR="muvr-open-training-data"
 
 # Absolute path of the spark JAR job
-EM_JAR=target/scala-2.10/em-assembly-1.0.0-SNAPSHOT.jar
+EM_JAR=$DIR/target/scala-2.10/em-assembly-1.0.0-SNAPSHOT.jar
 
 # Spark master public DNS
 [ "$#" -eq 1 ] || die "Error: Spark Master public DNS required as the only arugment. $# argument(s) provided."
 SPARK_MASTER=$1
-
-# AWS key pair PEM path"
-AWS_KEY_PAIR=~/Downloads/scalax-jan-test.pem
-
-# AWS account access key id
-AWS_ACCESS_KEY_ID=AKIAIWGORVA3QVK54PMA
-
-# AWS secret access key
-AWS_SECRET_ACCESS_KEY=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
 
 # Copy JAR with Spark job to Spark master
 scp -oStrictHostKeyChecking=no -i $AWS_KEY_PAIR $EM_JAR root@$SPARK_MASTER:~/em.jar
@@ -30,5 +37,12 @@ scp -oStrictHostKeyChecking=no -i $AWS_KEY_PAIR $EM_JAR root@$SPARK_MASTER:~/em.
 ssh -oStrictHostKeyChecking=no -i $AWS_KEY_PAIR root@$SPARK_MASTER "/root/spark-ec2/copy-dir em.jar"
 
 # Submit the spark job to the master
-#--output-path s3n://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$TRAINING_DATA_DIR/models
-ssh -i $AWS_KEY_PAIR root@$SPARK_MASTER "/root/spark/bin/spark-submit --class io.muvr.em.ModelTrainerMain --deploy-mode=cluster --driver-memory 6G --driver-cores 36 /root/em.jar --model arms --train-path s3n://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$TRAINING_DATA_DIR/train --test-path s3n://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$TRAINING_DATA_DIR/test --output-path s3n://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$TRAINING_DATA_DIR/models"
+for M in "${MODELS[@]}"; do
+  JOB="--class io.muvr.em.ModelTrainerMain --deploy-mode=cluster --driver-memory 6G --driver-cores 36 /root/em.jar"
+  PARAMS="--model $M --train-path s3n://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$TRAINING_DATA_DIR/train --test-path s3n://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$TRAINING_DATA_DIR/test --output-path s3n://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$TRAINING_DATA_DIR/models"
+
+  # submit the exercise $M job
+  ssh -i $AWS_KEY_PAIR root@$SPARK_MASTER "/root/spark/bin/spark-submit $JOB $PARAMS"
+  # submit the exercise vs. slacking for $M job
+  ssh -i $AWS_KEY_PAIR root@$SPARK_MASTER "/root/spark/bin/spark-submit $JOB $PARAMS --slacking=true"
+done
