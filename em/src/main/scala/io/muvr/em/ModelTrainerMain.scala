@@ -80,7 +80,7 @@ object ModelTrainerMain {
     val trainedModel = trainExamplesAndLabels
       .mapPartitions(_.grouped(batchSize).map(batchToExamplesAndLabelsMatrix).map((initialModel, _)))
       .map { case (model, (examples, labels)) ⇒ model.fit(examples, labels); model }
-      .take(1)
+      .collect()
       .head
 
 
