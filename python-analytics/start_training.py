@@ -10,6 +10,9 @@ from muvr.training.trainer import MLPMeasurementModelTrainer
 from muvr.converters import neon2iosmlp
 from muvr.training.default_models import generate_default_activity_model
 from muvr.training.default_models import generate_default_exercise_model
+from muvr.dataset.labelmappers import generate_activity_labelmapper
+from muvr.dataset.labelmappers import generate_exercise_labelmapper
+from muvr.visualization.datastats import dataset_statistics
 from pylab import *
 
 
@@ -51,11 +54,14 @@ def visualise_dataset(dataset, output_image):
     savefig(output_image)
 
 
-def learn_model_from_data(dataset, working_directory, model_name, epoch):
+def learn_model_from_data(dataset, working_directory, model_name, epoch, layer_filename):
     """Use MLP to train the dataset and generate result in working_directory"""
     model_trainer = MLPMeasurementModelTrainer(working_directory, max_epochs=epoch)
 
-    if model_name == "slacking":
+    if layer_filename:
+        layers = neon2iosmlp.parsing_layer(read_file(layer_filename))
+        model = Model(layers=layers)
+    elif model_name == "slacking":
         print "Using slacking model"
         model = generate_default_activity_model(dataset.num_labels)
     else:
@@ -111,8 +117,24 @@ def show_evaluation(model, dataset):
         table[i+1][0] = s
     table[0][0] = "actual \ predicted"
 
+    # Add 3 more last column: Total | Accuracy (%) | ExerciseId
+    table[0].extend(["Total", "Accuracy (%)", "Exercise"])
+    exerId = 1
+    while exerId < len(table):
+        row = table[exerId]
+        total = sum(row[1:len(row)])
+        print row[exerId], " - ", total
+        accuracy = "%.2f" % (float(row[exerId]) / float(total) * 100.0)
+        exerName = table[0][exerId]
+        table[exerId].extend([total, accuracy + "%", exerName])
+        exerId += 1
     return table
 
+def read_file(filename):
+    f = open(filename, 'r')
+    result = f.readline().strip()
+    f.close()
+    return result
 
 def write_to_csv(filename, data):
     """Write csv data to filename"""
@@ -122,25 +144,32 @@ def write_to_csv(filename, data):
     csvfile.close()
 
 
-def main(dataset_directory, working_directory, evaluation_file, visualise_image, model_name, test_directory, is_analysis, epoch):
+def main(dataset_directory, working_directory, evaluation_file, visualise_image, model_name, test_directory, is_analysis, epoch, layer_filename):
     """Main entry point."""
 
+    if model_name == "slacking":
+        mapping_label = generate_activity_labelmapper()
+    else:
+        mapping_label = generate_exercise_labelmapper()
+
     # 1/ Load the dataset
-    dataset = CSVAccelerationDataset(dataset_directory, test_directory)
+    dataset = CSVAccelerationDataset(dataset_directory, test_directory, label_mapper=mapping_label)
     print "Number of training examples:", dataset.num_train_examples
     print "Number of test examples:", dataset.num_test_examples
     print "Number of features:", dataset.num_features
     print "Number of labels:", dataset.num_labels
 
+    # 2a/ Write statistic of the dataset (in terms of window samples)
+    stats = dataset_statistics(dataset)
+    write_to_csv(os.path.join(working_directory, "dataset_stats.csv"), stats)
+
+    # 2b/ Print statistic in term of csv files
     dataset.train_examples.print_statistic("train", dataset.label_id_mapping)
     dataset.test_examples.print_statistic("test", dataset.label_id_mapping)
 
-    # 2/ Visualise the dataset
-    visualise_dataset(dataset, visualise_image)
-
     if not is_analysis:
         # 3/ Train the dataset using MLP
-        mlpmodel, trained_model = learn_model_from_data(dataset, working_directory, model_name, epoch)
+        mlpmodel, trained_model = learn_model_from_data(dataset, working_directory, model_name, epoch, layer_filename)
 
         # 4/ Evaluate the trained model
         table = show_evaluation(trained_model, dataset)
@@ -158,6 +187,7 @@ if __name__ == '__main__':
     parser.add_argument('-v', metavar='visualise', default='./output/visualisation.png', type=str, help="visualisation dataset image output")
     parser.add_argument('-m', metavar='modelname', default='demo', type=str, help="prefix name of model")
     parser.add_argument('-loop', metavar='epoch', default=30, type=int, help="number of training epoch")
+    parser.add_argument('-shape', metavar='shape', type=str, help="filename containing the shape of model")
     parser.add_argument('-analysis', action='store_true', default=False)
     args = parser.parse_args()
 
@@ -165,4 +195,4 @@ if __name__ == '__main__':
     # A good example of command-line params is
     # -m core -d ../../muvr-training-data/labelled/core -o ../output/ -v ../output/v.png -e  ../output/e.csv
     #
-    sys.exit(main(args.d, args.o, args.e, args.v, args.m, args.t, args.analysis, args.loop))
+    sys.exit(main(args.d, args.o, args.e, args.v, args.m, args.t, args.analysis, args.loop, args.shape))

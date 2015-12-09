@@ -58,21 +58,28 @@ printf "\n\nSTART TRAINING & EVALUATION with parameter:\n\tDataset: %s\n\tTest: 
 
 if ! [ -z $IS_ANALYSIS ]
 then
-    python python-analytics/start_training.py -d $DATASET -o $OUTPUT -e $EVAL -v $VISUAL -m $MODEL_NAME -loop $EPOCH -analysis | tee $LOG_FILE
+    if [ -z $TEST_FOLDER ]
+    then
+        python python-analytics/start_training.py -d "$DATASET" -o $OUTPUT -e $EVAL -v $VISUAL -m $MODEL_NAME -loop $EPOCH -analysis | tee $LOG_FILE
+    else
+        python python-analytics/start_training.py -d "$DATASET" -o $OUTPUT -e $EVAL -v $VISUAL -t $TEST_FOLDER -m $MODEL_NAME -loop $EPOCH -analysis | tee $LOG_FILE
+    fi
 else
     remove_output
     if [ -z $TEST_FOLDER ]
     then
-        python python-analytics/start_training.py -d $DATASET -o $OUTPUT -e $EVAL -v $VISUAL -m $MODEL_NAME -loop $EPOCH | tee $LOG_FILE
+        python python-analytics/start_training.py -d "$DATASET" -o $OUTPUT -e $EVAL -v $VISUAL -m $MODEL_NAME -loop $EPOCH | tee $LOG_FILE
     else
-        python python-analytics/start_training.py -d $DATASET -o $OUTPUT -e $EVAL -v $VISUAL -t $TEST_FOLDER -m $MODEL_NAME -loop $EPOCH | tee $LOG_FILE
+        python python-analytics/start_training.py -d "$DATASET" -o $OUTPUT -e $EVAL -v $VISUAL -t $TEST_FOLDER -m $MODEL_NAME -loop $EPOCH | tee $LOG_FILE
     fi
     EXIT_CODE=$?
     if [[ $EXIT_CODE != 0 ]]
     then
         exit $EXIT_CODE
     else
+        open $OUTPUT/dataset_stats.csv
+        open $OUTPUT/evaluation.csv
 #        open $OUTPUT/visualisation.png
-        column -s, -t < $OUTPUT/evaluation.csv
+#        column -s, -t < $OUTPUT/evaluation.csv
     fi
 fi
