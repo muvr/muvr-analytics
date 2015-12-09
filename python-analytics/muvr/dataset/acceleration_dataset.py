@@ -174,27 +174,6 @@ class CSVAccelerationDataset(AccelerationDataset):
 
             train, test = examples.split(self.TRAIN_RATIO)
 
-
-            def write_to_csv(filename, data):
-                """Write csv data to filename"""
-                folder = os.path.dirname(filename)
-                if not os.path.exists(folder):
-                    os.makedirs(folder)
-                with open(filename, 'wb') as csvfile:
-                    writer = csv.writer(csvfile)
-                    writer.writerows(data)
-
-            def write_dataset_to_csv(dataset, output_directory):
-                """Write dataset to multiple csv files"""
-                csv = dataset.to_csv_data(self.label_id_mapping)
-                for output, csv_data in csv:
-                    final_path = os.path.join(output_directory, output + ".csv")
-                    print "Writing", len(csv_data), "samples: ", final_path
-                    write_to_csv(final_path, csv_data)
-
-            write_dataset_to_csv(train, os.path.join(directory, "a_train"))
-            write_dataset_to_csv(test, os.path.join(directory, "a_test"))
-
         super(CSVAccelerationDataset, self).__init__(train, test, add_generated_examples)
 
     def load_examples(self, path, label_mapper):
@@ -235,18 +214,6 @@ class CSVAccelerationDataset(AccelerationDataset):
                 ys.append(self.label_id_mapping[label])
 
         return ExampleColl(xs, ys)
-
-    @staticmethod
-    def read_all_csv(root_directory):
-        csv_files = []
-        def append_csv_file(arg, direname, names):
-            for name in names:
-                f = os.path.join(direname, name)
-                if os.path.isfile(f) and f.endswith("csv"):
-                    csv_files.append(f)
-
-        os.path.walk(root_directory, append_csv_file, None)
-        return csv_files
 
     @staticmethod
     def load_example(filename, label_mapper):

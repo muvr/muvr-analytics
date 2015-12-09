@@ -62,26 +62,6 @@ Start notebooks
 jupyter notebook --ip="*"
 ```
 
-### Steps to run the training process
-
-#### Preprocess dataset
-There are 2 models to be trained: slacking model and exercise model. To prepare dataset for slacking model:
-```bash
-./prepare_dataset.sh -d dataset -o output/ -r 80 -s
- 
-```
-- `dataset` can be a path to folder containing all csv files or just the zip file.
-- `output` must be a folder which will contain 2 nested folder: `output/train` and `output/test`.
-- `80` is the train ratio, `80%` of dataset will be put for training, `20%` for evaluation only.
-- `s` is the flag for slacking, remove this flag to use for exercise model. 
-
-#### Train a model
-Based on the previous step, train a new model with the following script:
-```bash
-./run_training.sh -d output/train -t output/test/ -m arms
-```
-- `arms` is the prefix model name for the output.
-
 ### Issues
 
 For any bugs or feature requests please:

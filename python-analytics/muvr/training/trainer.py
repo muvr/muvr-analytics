@@ -47,46 +47,6 @@ class MLPMeasurementModelTrainer(object):
         import default_models
         return default_models.generate_default_exercise_model(num_labels)
 
-        layers = []
-        layers.append(Affine(
-            nout=500,
-            init=init_norm,
-            bias=bias_init,
-            activation=Rectlin()))
-
-        layers.append(Dropout(
-            name="do_1",
-            keep=0.9))
-    
-        layers.append(Affine(
-            nout=250,
-            init=init_norm,
-            bias=bias_init,
-            activation=Tanh()))
-
-        layers.append(Dropout(
-            name="do_2",
-            keep=0.9))
-
-        layers.append(Affine(
-            nout=100,
-            init=init_norm,
-            bias=bias_init,
-            activation=Rectlin()))
-
-        layers.append(Dropout(
-            name="do_3",
-            keep=0.9))
-
-        layers.append(Affine(
-            nout=num_labels,
-            init=init_norm,
-            bias=bias_init,
-            activation=Logistic()))
-
-        model = Model(layers=layers)
-        return model
-
     def train(self, dataset, model=None):
         """Trains the passed model on the given dataset. If no model is passed, `generate_default_model` is used."""
         print "Starting training..."
