@@ -166,13 +166,21 @@ class CSVAccelerationDataset(AccelerationDataset):
         # test and train on our own.
         self.label_id_mapping = {}
         if test_directory:
-            train = self.load_examples(directory, label_mapper)
-            test = self.load_examples(test_directory, label_mapper)
+            train = ExampleColl.concat(self.load_examples(directory, label_mapper))
+            test = ExampleColl.concat(self.load_examples(test_directory, label_mapper))
         else:
             examples = self.load_examples(directory, label_mapper)
-            examples.shuffle()
+            # examples.shuffle()
 
-            train, test = examples.split(self.TRAIN_RATIO)
+            training_data = []
+            test_data = []
+            for label_data in examples:
+                first, second = label_data.split(self.TRAIN_RATIO)
+                training_data.append(first)
+                test_data.append(second)
+
+            train = ExampleColl.concat(training_data).shuffle()
+            test = ExampleColl.concat(test_data).shuffle()
 
         super(CSVAccelerationDataset, self).__init__(train, test, add_generated_examples)
 
@@ -186,7 +194,7 @@ class CSVAccelerationDataset(AccelerationDataset):
 
         :param path: can be directory or zipfile. If zipfile, it will be extracted to a temporary path with prefix ``/tmp/muvr-training-``
         :param label_mapper: the mapper
-        :return:
+        :return: list of object ExampleColl, each has the same label
         """
         root_directory = ""
         if os.path.isdir(path):
@@ -202,18 +210,24 @@ class CSVAccelerationDataset(AccelerationDataset):
             for name in files:
                 f = os.path.join(root, name)
                 if os.path.isfile(f) and f.endswith("csv"):
-                    csv_files.append(f)  
-            
-        xs = []
-        ys = []
+                    csv_files.append(f)
+
+        label_mapping = {}
         for f in csv_files:
             for label, x in self.load_example(f, label_mapper):
                 if label not in self.label_id_mapping:
                     self.label_id_mapping[label] = len(self.label_id_mapping)
-                xs.append(x)
-                ys.append(self.label_id_mapping[label])
+                label_id = self.label_id_mapping[label]
+                samples = label_mapping.get(label_id, [])
+                samples.append(x)
+                label_mapping[label_id] = samples
 
-        return ExampleColl(xs, ys)
+        result = []
+        for label in label_mapping:
+            xs = label_mapping[label]
+            ys = [label] * len(xs)
+            result.append(ExampleColl(xs, ys))
+        return result
 
     @staticmethod
     def load_example(filename, label_mapper):
