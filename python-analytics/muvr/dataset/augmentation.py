@@ -36,7 +36,7 @@ class SignalAugmenter(object):
         else:
             return ExampleColl(np.empty((0, target_feature_length)), np.empty((0, 1)))
         
-    def augment_example(self, example, target_length, window_step_size=5):
+    def augment_example(self, example, target_length, window_step_size=10):
         """Example should be a numpy array, label a single label id."""
         dimensions = np.shape(example)[0]
         sample_length = np.shape(example)[1]

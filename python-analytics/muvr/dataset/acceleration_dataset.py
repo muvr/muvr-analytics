@@ -8,19 +8,27 @@ import zipfile
 import tempfile
 from muvr.dataset.augmentation import SignalAugmenter
 from muvr.dataset.examples import ExampleColl
+from collections import defaultdict
 
 
 class AccelerationDataset(object):
     """Dataset containing examples based on acceleration data and their labels."""
     logger = logging.getLogger("training.AccelerationDataset")
 
+    # Defines the ratio of examples used for training. The rest will be reserved for testing.
     TRAIN_RATIO = 0.8
 
+    # Target feature length of the examples during training
+    Target_Feature_Length = 400
+
+    # -- Signal Preprocessing Settings --
     # This defines the range of the values the accelerometer measures
     Feature_Range = 4.0
     Feature_Mean = 0
-
-    Target_Feature_Length = 400
+    # Rate at which the data got collected in seconds per sample
+    Feature_Sample_Rate = 1.0/50
+    # Defines the highest possible frequency, everything else will get filtered by the highpass filter
+    Highpass_Filter_Cutoff = 1.0/10
 
     def human_label_for(self, label_id):
         """Convert a label id into a human readable string label."""
@@ -36,13 +44,18 @@ class AccelerationDataset(object):
         with open(filename, 'wb') as f:
             f.write("\n".join(labels))
 
-    def generate_examples(self, examples):
-        return examples
-
-    def prepare_dataset(self, dataset, add_generated_examples):
+    def prepare_dataset(self, dataset, supersample=False):
+        """Prepare the loaded data for the neural network training.
+        
+        This is a rather important step and care should be taken to ensure the same preprocessing steps are applied
+        when the trained model is used. This includes signal filtering, and scaling of the signal.
+        """
         self.logger.info("Loading DS from files...")
-
-        dataset = self.generate_examples(dataset) if add_generated_examples else dataset
+        
+        dataset.highpass_filter(rate=self.Feature_Sample_Rate, freq=self.Highpass_Filter_Cutoff)
+        
+        if supersample:
+            dataset.supersample_classes()
 
         augmented = self.augmenter.augment_examples(dataset, self.Target_Feature_Length)
         self.logger.info("Augmented with %d examples, %d originally" % (
@@ -55,14 +68,14 @@ class AccelerationDataset(object):
         return augmented
 
     # Load label mapping and train / test data from disk.
-    def __init__(self, train_examples, test_examples=None, add_generated_examples=True):
+    def __init__(self, train_examples, test_examples=None, supersample_in_train=True):
         """Initialize the dataset using the provided train and test examples."""
 
         self.logger.info("Loading DS from files...")
         self.augmenter = SignalAugmenter(augmentation_start=0.1, augmentation_end=0.9)
 
-        train = self.prepare_dataset(train_examples, add_generated_examples)
-        test = self.prepare_dataset(test_examples, add_generated_examples)
+        train = self.prepare_dataset(train_examples, supersample=supersample_in_train)
+        test = self.prepare_dataset(test_examples, supersample=False)
 
         self.id_label_mapping = {v: k for k, v in self.label_id_mapping.items()}
         self.X_train = self.flatten2d(train.features)
@@ -79,7 +92,7 @@ class AccelerationDataset(object):
     def flatten2d(npa):
         """Take a 3D array and flatten the last dimension."""
         if npa.shape[0] > 0:
-            return npa.transpose([0,2,1]).reshape((npa.shape[0], -1))
+            return npa.reshape((npa.shape[0], -1))
         else:
             return npa
 
@@ -91,7 +104,7 @@ class AccelerationDataset(object):
             y=self.y_train,
             nclass=self.num_labels,
             make_onehot=True,
-            lshape=(self.num_features, 1, 1))
+            lshape=(3, self.num_features / 3, 1))
 
     def test(self):
         """Provide neon data iterator for testing purposes."""
@@ -101,13 +114,13 @@ class AccelerationDataset(object):
                 y=self.y_test,
                 nclass=self.num_labels,
                 make_onehot=True,
-                lshape=(self.num_features, 1, 1))
+                lshape=(3, self.num_features / 3, 1))
         else:
             return None
 
 
 class SparkAccelerationDataset(AccelerationDataset):
-    def __init__(self, example_list, label_mapper=lambda x: x, add_generated_examples = True):
+    def __init__(self, example_list, label_mapper=lambda x: x, supersample_in_train=True):
         """Load the data from the provided nested list of examples."""
         self.label_id_mapping = {}
         examples = self.transform_to_example_coll(example_list, label_mapper)
@@ -115,7 +128,7 @@ class SparkAccelerationDataset(AccelerationDataset):
 
         train, test = examples.split(self.TRAIN_RATIO)
 
-        super(SparkAccelerationDataset, self).__init__(train, test, add_generated_examples)
+        super(SparkAccelerationDataset, self).__init__(train, test, supersample_in_train)
 
     def transform_to_example_coll(self, examples, label_mapper):
         def transform(example):
@@ -152,7 +165,7 @@ class SparkAccelerationDataset(AccelerationDataset):
         return ExampleColl(xs, ys)
 
 class CSVAccelerationDataset(AccelerationDataset):
-    def __init__(self, directory, test_directory=None, label_mapper=lambda x: x, add_generated_examples = True):
+    def __init__(self, directory, test_directory=None, label_mapper=lambda x: x, supersample_in_train=True):
         """Load the dataset data from the directory.
 
         If two directories are passed the second is interpreted as the test dataset. If only one dataset gets passed,
@@ -171,7 +184,7 @@ class CSVAccelerationDataset(AccelerationDataset):
 
             train, test = examples.split(self.TRAIN_RATIO)
 
-        super(CSVAccelerationDataset, self).__init__(train, test, add_generated_examples)
+        super(CSVAccelerationDataset, self).__init__(train, test, supersample_in_train)
 
     def load_examples(self, path, label_mapper):
         """
