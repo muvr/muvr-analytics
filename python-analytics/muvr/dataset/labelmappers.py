@@ -1,28 +1,26 @@
 """A collection of default label mappers"""
 
 exercise_mapping = {
-    "arms/biceps-curl": [
+    "biceps-curl": [
         "biceps curls (left)",
         "biceps-curl",
         "bice",
         "arms/biceps-curl",
-        "BC ",
+        "bc",
         "bicep curls",
         "bicep"],
-    "shoulders/lateral-raise": [
+    "lateral-raise": [
         "arms/lateral-raise",
         "lateral raises",
         "lateral",
         "lateral-raise",
-        "LR",
-        "LR "],
-    "arms/triceps-extension": [
-        "triceps-extension	",
-        "tc ",
-        "TE",
+        "lr"],
+    "triceps-extension": [
+        "te",
         "tc",
         "triceps-extension"],
     "barbell-biceps-curl": [
+        "barbell-curl",
         "barbell-biceps-curl"],
     "angle-chest-press": [
         "angle-chest-press"],
@@ -31,34 +29,38 @@ exercise_mapping = {
         "dumbbell-bench-press"],
     "dumbbell-shoulder-press": [
         "dumbbell shoulder press",
-        "dumbbell shoulder press ",
         "dumbbell-shoulder-press"],
-    "vertical-swing": [
-        "vertical swing",
-        "vertical swing ",
-        "vertical-swing"],
+    # "vertical-swing": [
+    #     "vertical swing",
+    #     "vertical-swing"],
     "triceps-pushdown": [
         "triceps-pushdown",
-        "rope-tricep-pushdown",
-        "rope-tricep-pushdown "],
-    "barbell-squat": [
-        "barbell-squat"],
+        "rope-tricep-pushdown"],
+    # "barbell-squat": [
+    #     "barbell-squat"],
     "lateral-pulldown-straight": [
         "lateral-pulldown-straight",
         "lat-pulldown-straight"],
     "triceps-dips": [
         "triceps-dips"],
-    "bent-arm-barbell-pullover": [
-        "bent-arm-barbell-pullover"],
-    "running-machine-hit": [
-        "running-machine-hit",
-        "running-machine-hiit",
-        "hiit",
-        "hiit running machine"]
+    # "bent-arm-barbell-pullover": [
+    #     "bent-arm-barbell-pullover"],
+    "bench-press": [
+        "bench-press"
+    ]
+    # "running-machine-hit": [
+    #     "running-machine-hit",
+    #     "running-machine-hiit",
+    #     "hiit",
+    #     "hiit running machine"]
 }
 
 def inverse_mapping(mapping):
     return dict((label, ex) for (ex, labels) in mapping.iteritems() for label in labels)    
+
+
+def preprocess_label(label):
+    return label.lower().strip()
 
 
 def generate_activity_labelmapper():
@@ -69,10 +71,10 @@ def generate_activity_labelmapper():
 
     inv_exercise_map = inverse_mapping(activity_mapping)
     
-    return lambda label: inv_exercise_map.get(label)
+    return lambda label: inv_exercise_map.get(preprocess_label(label))
 
 
 def generate_exercise_labelmapper():
     inv_exercise_map = inverse_mapping(exercise_mapping)
 
-    return lambda label: inv_exercise_map.get(label)
+    return lambda label: inv_exercise_map.get(preprocess_label(label))
