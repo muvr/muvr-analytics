@@ -1,7 +1,7 @@
 from neon.initializers import Uniform, Constant
 from neon.layers import Affine, Dropout
 from neon.models import Model
-from neon.transforms import Rectlin, Logistic
+from neon.transforms import Rectlin, Logistic, Softmax
 
 
 def generate_default_exercise_model(num_labels):
@@ -18,7 +18,7 @@ def generate_default_exercise_model(num_labels):
 
     layers.append(Dropout(
         name="do_1",
-        keep=0.9))
+        keep=0.95))
 
     layers.append(Affine(
         nout=50,
@@ -28,13 +28,13 @@ def generate_default_exercise_model(num_labels):
 
     layers.append(Dropout(
         name="do_3",
-        keep=0.9))
+        keep=0.95))
 
     layers.append(Affine(
         nout=num_labels,
         init=init_norm,
         bias=bias_init,
-        activation=Logistic()))
+        activation=Softmax()))
 
     return Model(layers=layers)
 

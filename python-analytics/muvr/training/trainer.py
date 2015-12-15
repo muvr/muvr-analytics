@@ -53,6 +53,9 @@ class MLPMeasurementModelTrainer(object):
         start = time.time()
 
         # The training will be run on the CPU. If a GPU is available it should be used instead.
+
+        # Uncomment line below to run on GPU using cudanet backend
+        # backend = gen_backend(rng_seed=0, gpu='cudanet')
         backend = gen_backend(backend='cpu',
                               batch_size=self.batch_size,
                               rng_seed=self.random_seed,
@@ -86,10 +89,8 @@ class MLPMeasurementModelTrainer(object):
         callbacks = Callbacks(model, dataset.train(), args, eval_set=dataset.test())
 
         # add a callback that saves the best model state
-        # callbacks.add_save_best_state_callback(self.model_path)
-
-        # Uncomment line below to run on GPU using cudanet backend
-        # backend = gen_backend(rng_seed=0, gpu='cudanet')
+        callbacks.add_save_best_state_callback(self.model_path)
+        
         model.fit(
             dataset.train(),
             optimizer=optimizer,
@@ -101,7 +102,6 @@ class MLPMeasurementModelTrainer(object):
               % (model.eval(dataset.test(), metric=Misclassification()) * 100))
         print "Finished training!"
         end = time.time()
-        shutil.copyfile(os.path.join(self.root_path, self.Intermediate_Model_Filename + "_" + str(model.epoch_index-1)), self.model_path)
         print "Duration", end - start, "seconds"
 
         return model

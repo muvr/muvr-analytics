@@ -22,6 +22,7 @@ def remove_if_exists(filename):
         else:
             raise
 
+
 def closest_sqrt(i):
     """Find the two factors that multiplied result in i and are closest to sqrt(i)."""
     N = int(math.sqrt(i))
@@ -31,3 +32,15 @@ def closest_sqrt(i):
             return N, M
 
         N -= 1
+
+
+def highpass_filter(sample, rate, freq):
+    """Apply a highpass filter to the passed in sample. Rate defines the samples sampling rate and freq the cutoff."""
+    dt = 1.0 / rate
+    RC = 1.0 / freq
+    alpha = RC / (RC + dt)
+    count = len(sample)
+    filtered = [sample[0]]
+    for i in range(1, count):
+        filtered.append(sample[i] * alpha + filtered[i-1] * (1.0 - alpha))
+    return filtered
