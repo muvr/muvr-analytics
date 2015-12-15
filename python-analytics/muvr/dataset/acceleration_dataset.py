@@ -192,8 +192,10 @@ class CSVAccelerationDataset(AccelerationDataset):
                 training_data.append(first)
                 test_data.append(second)
 
-            train = ExampleColl.concat(training_data).shuffle()
-            test = ExampleColl.concat(test_data).shuffle()
+            train = ExampleColl.concat(training_data)
+            train.shuffle()
+            test = ExampleColl.concat(test_data)
+            test.shuffle()
 
         super(CSVAccelerationDataset, self).__init__(train, test, supersample_in_train)
 

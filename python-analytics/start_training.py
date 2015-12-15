@@ -3,6 +3,7 @@ import argparse
 import os
 import numpy as np
 import csv
+from os.path import basename
 
 from sklearn.metrics import confusion_matrix
 from muvr.dataset.acceleration_dataset import CSVAccelerationDataset
@@ -15,6 +16,12 @@ from muvr.dataset.labelmappers import generate_exercise_labelmapper
 from muvr.visualization.datastats import dataset_statistics
 from pylab import *
 
+
+class HelpPrintingParser(argparse.ArgumentParser):
+    def error(self, message):
+        sys.stderr.write('error: %s\n' % message)
+        self.print_help()
+        sys.exit(2)
 
 def visualise_dataset(dataset, output_image):
     """Visualise partly the dataset and save as image file"""
@@ -54,19 +61,18 @@ def visualise_dataset(dataset, output_image):
     savefig(output_image)
 
 
-def learn_model_from_data(dataset, working_directory, model_name, epoch, layer_filename):
+def learn_model_from_data(dataset, working_directory, model_name, model_yaml=None):
     """Use MLP to train the dataset and generate result in working_directory"""
-    model_trainer = MLPMeasurementModelTrainer(working_directory, max_epochs=epoch)
+    model_trainer = MLPMeasurementModelTrainer(working_directory, model_yaml_path=model_yaml)
 
-    if layer_filename:
-        layers = neon2iosmlp.parsing_layer(read_file(layer_filename))
-        model = Model(layers=layers)
-    elif model_name == "slacking":
-        print "Using slacking model"
-        model = generate_default_activity_model(dataset.num_labels)
-    else:
-        print "Using default model"
-        model = generate_default_exercise_model(dataset.num_labels)
+    model = None
+    if model_yaml is None:
+        if model_name == "slacking":
+            print "Using slacking model"
+            model = generate_default_activity_model(dataset.num_labels)
+        else:
+            print "Using default model"
+            model = generate_default_exercise_model(dataset.num_labels)
 
     trained_model = model_trainer.train(dataset, model)
 
@@ -123,7 +129,6 @@ def show_evaluation(model, dataset):
     while exerId < len(table):
         row = table[exerId]
         total = sum(row[1:len(row)])
-        print row[exerId], " - ", total
         accuracy = "%.2f" % (float(row[exerId]) / float(total) * 100.0)
         exerName = table[0][exerId]
         table[exerId].extend([total, accuracy + "%", exerName])
@@ -143,8 +148,26 @@ def write_to_csv(filename, data):
     writer.writerows(data)
     csvfile.close()
 
+def load_all_yaml_files(root_directory):
+    yaml_files = []
+    for root, _, files in os.walk(root_directory, followlinks=True):
+        for name in files:
+            f = os.path.join(root, name)
+            if os.path.isfile(f) and f.endswith("yaml"):
+                yaml_files.append(f)
+    return yaml_files
 
-def main(dataset_directory, working_directory, evaluation_file, visualise_image, model_name, test_directory, is_analysis, epoch, layer_filename):
+def run_training(dataset, working_directory, model_name, evaluation_file, path_model_yaml=None):
+    # 1/ Start training
+    mlpmodel, trained_model = learn_model_from_data(dataset, working_directory, model_name, path_model_yaml)
+
+    # 2/ Evaluate the trained model
+    table = show_evaluation(trained_model, dataset)
+
+    # 3/ Print the evaluation table to csv file
+    write_to_csv(evaluation_file, table)
+
+def main(dataset_directory, working_directory, model_name, test_directory, is_analysis, yaml_directory):
     """Main entry point."""
 
     if model_name == "slacking":
@@ -169,30 +192,35 @@ def main(dataset_directory, working_directory, evaluation_file, visualise_image,
 
     if not is_analysis:
         # 3/ Train the dataset using MLP
-        mlpmodel, trained_model = learn_model_from_data(dataset, working_directory, model_name, epoch, layer_filename)
+        if yaml_directory is None:
+            evaluation_file = os.path.join(working_directory, "evaluation.csv")
+            run_training(dataset, working_directory, model_name, evaluation_file)
+        else:
+            for yaml in load_all_yaml_files(yaml_directory):
+                path_without_ext = os.path.splitext(yaml)[0]
+                yaml_filename = basename(path_without_ext)
+                new_working_dir = os.path.join(working_directory, yaml_filename)
+                if not os.path.exists(new_working_dir):
+                    os.makedirs(new_working_dir)
 
-        # 4/ Evaluate the trained model
-        table = show_evaluation(trained_model, dataset)
+                print "\n\n\nTraining on this model:", yaml
+                evaluation_file = os.path.join(new_working_dir, "evaluation.csv")
+                run_training(dataset, new_working_dir, model_name, evaluation_file, yaml)
 
-        # 5/ Print the evaluation table to csv file
-        write_to_csv(evaluation_file, table)
 
 if __name__ == '__main__':
     """List arguments for this program"""
-    parser = argparse.ArgumentParser(description='Train and evaluate the exercise dataset.')
+    parser = HelpPrintingParser(description='Train and evaluate the exercise dataset.')
     parser.add_argument('-d', metavar='dataset', type=str, help="folder containing exercise dataset")
     parser.add_argument('-t', metavar='test', type=str, help="test dataset")
     parser.add_argument('-o', metavar='output', default='./output', type=str, help="folder containing generated model")
-    parser.add_argument('-e', metavar='evaluation', default='./output/evaluation.csv', type=str, help="evaluation csv file output")
-    parser.add_argument('-v', metavar='visualise', default='./output/visualisation.png', type=str, help="visualisation dataset image output")
     parser.add_argument('-m', metavar='modelname', default='demo', type=str, help="prefix name of model")
-    parser.add_argument('-loop', metavar='epoch', default=30, type=int, help="number of training epoch")
-    parser.add_argument('-shape', metavar='shape', type=str, help="filename containing the shape of model")
+    parser.add_argument('-yaml', metavar='yaml', type=str, help="folder containing all yaml definition file of the model")
     parser.add_argument('-analysis', action='store_true', default=False)
     args = parser.parse_args()
 
     #
     # A good example of command-line params is
-    # -m core -d ../../muvr-training-data/labelled/core -o ../output/ -v ../output/v.png -e  ../output/e.csv
-    #
-    sys.exit(main(args.d, args.o, args.e, args.v, args.m, args.t, args.analysis, args.loop, args.shape))
+    # -m core -d ../../muvr-training-data/labelled/core -o ../output/ -yaml folder_contain_yaml_files/
+    
+    sys.exit(main(args.d, args.o, args.m, args.t, args.analysis, args.yaml))

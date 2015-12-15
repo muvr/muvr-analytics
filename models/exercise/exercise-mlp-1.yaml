@@ -1,0 +1,46 @@
+backend: cpu
+cost: CrossEntropyMulti
+epochs: 3
+batchsize: 30
+
+wt_init: &wt_init
+    type: Uniform
+    low: -0.1
+    high: 0.1
+
+bias_init: &bias_init
+    type: Constant
+    val: 1.0
+
+layers:
+-
+    type: Affine
+    nout: 250
+    init: *wt_init
+    bias: *bias_init
+    activation: Rectlin
+-
+    type: Dropout
+    name: do_1
+    keep: 0.95
+-
+    type: Affine
+    nout: 50
+    init: *wt_init
+    bias: *bias_init
+    activation: Rectlin
+-
+    type: Dropout
+    name: do_2
+    keep: 0.95
+-
+    type: Affine
+    nout: 11
+    init: *wt_init
+    bias: *bias_init
+    activation: Softmax
+
+optimizer:
+    type: GradientDescentMomentum
+    learning_rate: 0.01
+    momentum_coef: 0.9

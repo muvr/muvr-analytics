@@ -9,22 +9,23 @@ from neon.transforms import Misclassification
 from neon.transforms.cost import CrossEntropyMulti
 from muvr.util import utils
 import shutil
-
-
-class NeonCallbackParameters(object):
-    pass
+import yaml
+from neon.util.yaml_parse import create_objects
 
 class MLPMeasurementModelTrainer(object):
     """Wrapper around a neon MLP model that controls training parameters and configuration of the model."""
 
     random_seed = 666  # Take your lucky number
 
+    Default_Batch_Size = 30
+    Default_Max_Epochs = 10
+
     # Storage settings for the different output files
     Model_Filename = 'workout-mlp.pkl'
     Callback_Store_Filename = 'workout-mlp.h5'
     Intermediate_Model_Filename = 'workout-mlp-ep'
 
-    def __init__(self, root_path, lrate=0.01, batch_size=30, max_epochs=10):
+    def __init__(self, root_path, lrate=0.01, batch_size=30, max_epochs=10, model_yaml_path=None):
         """Initialize paths and loggers of the model."""
         # Storage director of the model and its snapshots
         self.root_path = root_path
@@ -32,9 +33,34 @@ class MLPMeasurementModelTrainer(object):
         utils.remove_if_exists(self.model_path)
         
         # Training settings
-        self.lrate = lrate
         self.batch_size = batch_size
         self.max_epochs = max_epochs
+        self.cost = GeneralizedCost(
+            name='cost',
+            costfunc=CrossEntropyMulti())
+        self.optimizer = GradientDescentMomentum(
+            learning_rate=lrate,
+            momentum_coef=0.9)
+        self.model = None
+
+        if model_yaml_path is not None:
+            # Override the setting with this yaml file
+            self.model_yaml_path = model_yaml_path
+
+            batch_size, epochs = self._load_backend_parameters_from()
+            self.batch_size = batch_size
+            self.max_epochs = epochs
+
+            backend = gen_backend(backend='cpu',
+                                  batch_size=self.batch_size,
+                                  rng_seed=self.random_seed,
+                                  stochastic_round=False)
+
+            model, cost, optimizer = create_objects(self.model_yaml_path)
+            self.model = model
+            self.cost = cost
+            self.optimizer = optimizer
+
 
         # Set logging output...
         for name in ["neon.util.persist"]:
@@ -42,7 +68,37 @@ class MLPMeasurementModelTrainer(object):
             dslogger.setLevel(40)
 
         print 'Epochs: %d Batch-Size: %d' % (self.max_epochs, self.batch_size)
-        
+
+    def _load_backend_parameters_from(self):
+        yaml_file = open(self.model_yaml_path, 'r')
+        yaml_str = yaml_file.read()
+        root_yaml = yaml.safe_load(yaml_str)
+
+        epochs = root_yaml['epochs'] if 'epochs' in root_yaml else self.Default_Max_Epochs
+        batch_size = root_yaml['batchsize'] if 'batchsize' in root_yaml else self.Default_Batch_Size
+        return batch_size, epochs
+
+    def _configure_callbacks(self, model, train, test):
+        # Wrapper class to allow dynamic property changes
+        class NeonCallbackParameters(object):
+            pass
+
+        args = NeonCallbackParameters()
+        args.output_file = os.path.join(self.root_path, self.Callback_Store_Filename)
+        args.evaluation_freq = 1
+        args.progress_bar = True
+        args.epochs = self.max_epochs
+        args.save_path = os.path.join(self.root_path, self.Intermediate_Model_Filename)
+        args.serialize = 1
+        args.history = 100
+        args.model_file = None
+
+        callbacks = Callbacks(model, train, args, eval_set=test)
+
+        # add a callback that saves the best model state
+        callbacks.add_save_best_state_callback(self.model_path)
+        return callbacks
+
     def generate_default_model(self, num_labels):
         import default_models
         return default_models.generate_default_exercise_model(num_labels)
@@ -56,46 +112,29 @@ class MLPMeasurementModelTrainer(object):
 
         # Uncomment line below to run on GPU using cudanet backend
         # backend = gen_backend(rng_seed=0, gpu='cudanet')
-        backend = gen_backend(backend='cpu',
-                              batch_size=self.batch_size,
-                              rng_seed=self.random_seed,
-                              stochastic_round=False)
-
-        cost = GeneralizedCost(
-            name='cost',
-            costfunc=CrossEntropyMulti())
-
-        optimizer = GradientDescentMomentum(
-            learning_rate=self.lrate,
-            momentum_coef=0.9)
+        # backend = gen_backend(backend='cpu',
+        #                       batch_size=self.batch_size,
+        #                       rng_seed=self.random_seed,
+        #                       stochastic_round=False)
 
         # set up the model and experiment
         if not model:
             model = self.generate_default_model(dataset.num_labels)
 
+        # override the model defined in yaml file
+        if self.model is not None:
+            model = self.model
+
         lc = self.layers(dataset, model)
-        print lc
+        print "Shape of this model:", lc
 
-        args = NeonCallbackParameters()
-        args.output_file = os.path.join(self.root_path, self.Callback_Store_Filename)
-        args.evaluation_freq = 1
-        args.progress_bar = True
-        args.epochs = self.max_epochs
-        args.save_path = os.path.join(self.root_path, self.Intermediate_Model_Filename)
-        args.serialize = 1
-        args.history = 100
-        args.model_file = None
-
-        callbacks = Callbacks(model, dataset.train(), args, eval_set=dataset.test())
-
-        # add a callback that saves the best model state
-        callbacks.add_save_best_state_callback(self.model_path)
+        callbacks = self._configure_callbacks(model, dataset.train(), dataset.test())
         
         model.fit(
             dataset.train(),
-            optimizer=optimizer,
+            optimizer=self.optimizer,
             num_epochs=self.max_epochs,
-            cost=cost,
+            cost=self.cost,
             callbacks=callbacks)
 
         print('Misclassification error = %.1f%%'
