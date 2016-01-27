@@ -26,7 +26,7 @@ object Resolvers {
 object Dependency {
 
   object spark {
-    private val core = "org.apache.spark" %% "spark-core" % "1.5.2"
+    private val core = "org.apache.spark" %% "spark-core" % "1.6.0"
 
     val all = Seq(core % "provided")
   }
@@ -41,8 +41,8 @@ object Dependency {
   }
 
   object dl4j {
-    private val nd4jVersion         = "0.4-rc3.6"
-    private val dl4jVersion         = "0.4-rc3.6"
+    private val nd4jVersion         = "0.4-rc3.8"
+    private val dl4jVersion         = "0.4-rc3.8"
 
     private val dl4jCore            = "org.deeplearning4j"                % "deeplearning4j-core"     % dl4jVersion intransitive()
     private val nd4jX86             = "org.nd4j"                          % "nd4j-x86"                % nd4jVersion intransitive()
