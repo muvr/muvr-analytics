@@ -143,14 +143,122 @@ def err(y, t):
     return (0.5 * np.square(y - t).mean(axis=feature_axis).mean())
 
 
-# input file contains 3 lines which correspond to train, valid and test sequence
+# input file contains multiple lines, each line is the sequence of number in one session
 def parseData(filename):
 	with open(filename, 'r') as myfile:
 		data = myfile.readlines()
-		train_sequence = np.array([[float(s)] for s in data[0].strip().split(" ")])
-		valid_sequence = np.array([[float(s)] for s in data[1].strip().split(" ")])
-        test_sequence = np.array([[float(s)] for s in data[2].strip().split(" ")])
-	return (train_sequence, valid_sequence, test_sequence)
+        def parseLine(line, separator):
+            return np.array([[float(s)] for s in line.strip().split(separator)])
+        sequences = [parseLine(line, ",") for line in data]
+	return sequences
+
+
+def get_max(list_data):
+    max_number = float("-inf")
+    for data in list_data:
+        if data.max() > max_number:
+            max_number = data.max()
+    return max_number
+
+
+def get_min(list_data):
+    min_number = float("inf")
+    for data in list_data:
+        if data.min() < min_number:
+            min_number = data.min()
+    return min_number
+
+
+# normalize the input into range [0, 1]
+def normalize(input, min_val, max_val):
+    def transform(x):
+        return (x - min_val) / (max_val - min_val)
+    return transform(input)
+
+
+# convert the normalize number to original range
+def convert(input, min_val, max_val):
+    return input * (max_val - min_val) + min_val
+
+
+def duplicate_data(array_input, limit):
+    number_duplicate = limit / len(array_input)
+    new_array = array_input
+    for i in range(2, number_duplicate+1):
+        new_array = np.concatenate((new_array, array_input))
+    return new_array
+
+
+def build_dataset(array_input, seq_len, min_val, max_val, return_sequences):
+    normalize_array = normalize(array_input, min_val, max_val)
+    dataset = DataIteratorSequence(normalize_array, seq_len, return_sequences=return_sequences)
+    return dataset
+
+
+def setup_model(num_features, hidden, return_sequences):
+    # define weights initialization
+    init = GlorotUniform()  # Uniform(low=-0.08, high=0.08)
+
+    # define model: model is different for the 2 strategies (sequence target or not)
+    if return_sequences is True:
+        layers = [
+            LSTM(hidden, init, activation=Logistic(), gate_activation=Tanh(), reset_cells=False),
+            Affine(num_features, init, bias=init, activation=Identity())
+        ]
+    else:
+        layers = [
+            LSTM(hidden, init, activation=Logistic(), gate_activation=Tanh(), reset_cells=True),
+            RecurrentLast(),
+            Affine(num_features, init, bias=init, activation=Identity())
+        ]
+
+    model = Model(layers=layers)
+    return model
+
+
+def run_training(model, dataset, valid_set, args, cost, optimizer):
+    callbacks = Callbacks(model, dataset, eval_set=valid_set, **args.callback_args)
+    model.fit(dataset, optimizer=optimizer, num_epochs=args.epochs, cost=cost, callbacks=callbacks)
+
+
+def predict_next_value(model, test_data, seq_len, min_val, max_val, return_sequences):
+    lst = test_data.tolist()
+    lst.append([0])
+    test_data = np.array(lst)
+
+    test_set = build_dataset(test_data, seq_len, min_val, max_val, return_sequences)
+
+    overlap_sequence = rolling_window(test_data, seq_len)[:-1]
+    test_output = model.get_outputs(test_set)
+    convert_output = convert(test_output, min_val, max_val)
+    return convert_output[len(convert_output) - 1][0]
+
+def roundMinMax(value, minimum, step, maximum):
+    if value < minimum:
+        return minimum
+
+    if value >= maximum:
+        return maximum
+
+    weight = minimum
+    while weight < maximum:
+        dcw = value - weight
+        dnw = value - (weight + step)
+        if dcw >= 0 and dnw <= 0:
+            # value is in range
+            if abs(dcw) > abs(dnw):
+                return weight + step
+            else:
+                return weight
+
+        weight += step
+
+    return value
+
+
+def error_by_last_value(data):
+    return sum((data[0:(len(data)-1)] - data[1:len(data)]) ** 2)
+
 
 if __name__ == '__main__':
 
@@ -202,83 +310,71 @@ if __name__ == '__main__':
 
 
     seq_len = 3
-    (train_data, valid_data, test_data) = parseData("input.txt")
-    max_val = max(train_data.max(), valid_data.max(), test_data.max()) + 15
-    min_val = min(train_data.min(), valid_data.min(), test_data.min()) - 5
+    limit_size = 200
+    list_data = parseData("input.txt")
 
-    # normalize the input into range [0, 1]
-    def normalize(input):
-        def transform(x):
-            return (x - min_val) / (max_val - min_val)
-        return transform(input)
+    max_val = get_max(list_data) + 15
+    min_val = get_min(list_data) - 5
 
-    # convert the normalize number to original range
-    def convert(input):
-		return input * (max_val - min_val) + min_val
+    valid_data = list_data[0]
+    valid_set = build_dataset(valid_data, seq_len, min_val, max_val, return_sequences)
 
-    # normalize input
-    train_data_n = normalize(train_data)
-    valid_data_n = normalize(valid_data)
+    model = setup_model(valid_set.nfeatures, hidden, return_sequences)
+    args.epochs = 0
 
-    # use data iterator to feed X, Y. return_sequence determines training strategy
-    train_set = DataIteratorSequence(train_data_n, seq_len, return_sequences=return_sequences)
-    valid_set = DataIteratorSequence(valid_data_n, seq_len, return_sequences=return_sequences)
-
-    print "\nNumber of features:", train_set.nfeatures
-    print "Next value depends on", seq_len, "past number"
-    print "max_range =", max_val
-    print "min_range =", min_val
-
-    # define weights initialization
-    init = GlorotUniform()  # Uniform(low=-0.08, high=0.08)
-
-    # define model: model is different for the 2 strategies (sequence target or not)
-    if return_sequences is True:
-        layers = [
-            LSTM(hidden, init, activation=Logistic(), gate_activation=Tanh(), reset_cells=False),
-            Affine(train_set.nfeatures, init, bias=init, activation=Identity())
-        ]
-    else:
-        layers = [
-            LSTM(hidden, init, activation=Logistic(), gate_activation=Tanh(), reset_cells=True),
-            RecurrentLast(),
-            Affine(train_set.nfeatures, init, bias=init, activation=Identity())
-        ]
-
-
-    model = Model(layers=layers)
     cost = GeneralizedCost(MeanSquared())
     optimizer = RMSProp(stochastic_round=args.rounding, learning_rate=0.02, decay_rate=0.6)
 
-    callbacks = Callbacks(model, train_set, eval_set=valid_set, **args.callback_args)
+    list_error = []
+    for data in list_data:
+        # training for each session
+        print "START TRAINING for this session:", data.flatten(), "length =", len(data)
+        #error_rate = error_by_last_value(data[0:seq_len+1])
+        error_rate = 0
+        predicted_sequence = np.array([[0]])
+        predicted_sequence = np.concatenate((predicted_sequence, data[0:seq_len]))
+        for index in range(seq_len, len(data)):
+            # training incrementally in one session
+            train_data = data[0:(index+1)]
+            print "Train incrementally for this subset:", train_data.flatten()
+            new_train = duplicate_data(train_data, limit_size)
+            train_set = build_dataset(new_train, seq_len, min_val, max_val, return_sequences)
+            
+            args.epochs += 3
+            run_training(model, train_set, valid_set, args, cost, optimizer)
 
-    # fit model
-    print "\nSTART TRAINING\n"
-    model.fit(train_set,
-              optimizer=optimizer,
-              num_epochs=3,
-              cost=cost,
-              callbacks=callbacks)
+            predict_val = predict_next_value(model, train_data, seq_len, min_val, max_val, return_sequences)
+            predict_val = roundMinMax(predict_val, 2.5, 2.5, 999)
+            if index < len(data) - 1:
+                print "==>", predict_val, "vs expect", data[index+1]
+                error_rate += (predict_val - data[index+1]) ** 2
+                predicted_sequence = np.concatenate((predicted_sequence, np.array([[predict_val]])))
+            print
+        
+        list_error.append(error_rate)
+        print "input_sequence =", data.flatten()
+        print "predicted_sequence =", predicted_sequence.flatten(), "\n"
 
-    # run the trained model on train and valid dataset and see how the outputs match
-    train_output = model.get_outputs(train_set).reshape(-1, train_set.nfeatures)
-    valid_output = model.get_outputs(valid_set).reshape(-1, valid_set.nfeatures)
-    train_target = train_set.y_series
-    valid_target = valid_set.y_series
+    for error in list_error:
+        print "Error rate:", error
 
-    # calculate accuracy
-    terr = err(train_output, train_target)
-    verr = err(valid_output, valid_target)
+    
 
-    print '\ntrain err = %g, valid err = %g' % (terr, verr)
+    # print "\nNumber of features:", train_set.nfeatures
+    # print "Next value depends on", seq_len, "past number"
+    # print "max_range =", max_val
+    # print "min_range =", min_val
 
-    print "\nNow test with sequence:", test_data.flatten()
-    test_set = DataIteratorSequence(normalize(test_data), seq_len, return_sequences=return_sequences)
+    # # run the trained model on train and valid dataset and see how the outputs match
+    # train_output = model.get_outputs(train_set).reshape(-1, train_set.nfeatures)
+    # valid_output = model.get_outputs(valid_set).reshape(-1, valid_set.nfeatures)
+    # train_target = train_set.y_series
+    # valid_target = valid_set.y_series
 
-    overlap_sequence = rolling_window(test_data, seq_len)[:-1]
-    test_output = model.get_outputs(test_set)
-    convert_output = convert(test_output)
-    for index, test_seq in enumerate(overlap_sequence):
-        print "\nNext value of sequence:", test_seq.flatten()
-        print convert_output[index]
+    # # calculate accuracy
+    # terr = err(train_output, train_target)
+    # verr = err(valid_output, valid_target)
+
+    # print '\ntrain err = %g, valid err = %g' % (terr, verr)
+
 
