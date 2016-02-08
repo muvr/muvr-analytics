@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# 49c30c1
 # This script, which lives in muvr-analytics/em, must have the following files
 # available (relative to muvr-analytics/em)
 # ../../aws.pem
