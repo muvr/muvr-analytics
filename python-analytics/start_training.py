@@ -10,7 +10,6 @@ from muvr.training.trainer import MLPMeasurementModelTrainer
 from muvr.converters import neon2iosmlp
 from pylab import *
 
-
 def visualise_dataset(dataset, output_image):
     """Visualise partly the dataset and save as image file"""
 
@@ -123,7 +122,7 @@ def main(dataset_directory, working_directory, evaluation_file, visualise_image,
     print "Number of features:", dataset.num_features
     print "Number of labels:", dataset.num_labels
 
-    # 2/ Visualise the dataset
+    # 2/ Visualise the dataset & model
     visualise_dataset(dataset, visualise_image)
 
     # 3/ Train the dataset using MLP
